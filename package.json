@@ -3,14 +3,9 @@
   "version": "1.0.0",
   "description": "Generate WordPress theme.json from Figma variables",
   "main": "code.js",
-  "scripts": {
-    "build": "tsc -p tsconfig.json",
-    "watch": "tsc -p tsconfig.json -w"
-  },
   "author": "",
   "license": "",
   "devDependencies": {
-    "@figma/plugin-typings": "*",
     "@types/node": "*",
     "typescript": "*"
   }
