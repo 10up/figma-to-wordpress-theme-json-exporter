@@ -1,0 +1,14 @@
+{
+  "name": "WordPress Theme.json Export",
+  "id": "1476325215239454172",
+  "api": "1.0.0",
+  "editorType": ["figma"],
+  "permissions": [],
+  "main": "code.js",
+  "menu": [
+    { "command": "import", "name": "Import Variables" },
+    { "command": "export", "name": "Export to theme.json" }
+  ],
+  "ui": { "import": "import.html", "export": "export.html" },
+  "documentAccess": "dynamic-page"
+}

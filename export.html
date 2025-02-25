@@ -1,0 +1,173 @@
+<style>
+	:root {
+	  --spacing: 0.8rem;
+	}
+  
+	* {
+	  box-sizing: border-box;
+	}
+  
+	body {
+	  background-color: var(--figma-color-bg);
+	  color: var(--figma-color-text);
+	  margin: 0;
+	  padding: var(--spacing);
+	}
+  
+	html,
+	body,
+	main {
+	  height: 100%;
+	}
+  
+	main {
+	  display: flex;
+	  flex-direction: column;
+	  gap: var(--spacing);
+	}
+  
+	button {
+	  appearance: none;
+	  border-radius: 4px;
+	  padding: var(--spacing);
+	}
+  
+	textarea {
+	  background-color: var(--figma-color-bg-secondary);
+	  border: 2px solid var(--figma-color-border);
+	  color: var(--figma-color-text-secondary);
+	  flex: 1;
+	  font-family: Andale Mono, monospace;
+	  font-size: 0.9rem;
+	  overflow: auto;
+	  padding: var(--spacing);
+	  white-space: pre;
+	}
+	textarea:focus {
+	  border-color: var(--figma-color-border-selected);
+	  outline: none;
+	}
+  
+	button,
+	textarea {
+	  display: block;
+	  width: 100%;
+	}
+  
+	button {
+	  background-color: var(--figma-color-bg-brand);
+	  border: none;
+	  color: var(--figma-color-text-onbrand);
+	  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+		Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue",
+		sans-serif;
+	  font-weight: bold;
+	  cursor: pointer;
+	}
+  
+	#export {
+	  background-color: var(--figma-color-bg-component);
+	}
+
+	.button-row {
+	  display: flex;
+	  gap: var(--spacing);
+	}
+
+	.info-text {
+	  font-size: 0.9rem;
+	  margin-bottom: var(--spacing);
+	  color: var(--figma-color-text-secondary);
+	}
+
+	#download {
+	  background-color: var(--figma-color-bg-success);
+	  display: none;
+	}
+
+	.features {
+	  font-size: 0.8rem;
+	  margin-top: 0.5rem;
+	  color: var(--figma-color-text-secondary);
+	}
+
+	.features strong {
+	  color: var(--figma-color-text);
+	}
+  </style>
+  <main>
+	<div class="info-text">
+	  Export your Figma variables as WordPress theme.json format. Variables will be placed in the "settings.custom" section.
+	  <div class="features">
+		<strong>Features:</strong>
+		<ul>
+		  <li>All variables placed under settings.custom</li>
+		  <li>Variable references converted to WordPress CSS custom properties format</li>
+		  <li>CamelCase names converted to kebab-case following WordPress conventions</li>
+		</ul>
+	  </div>
+	</div>
+	<div class="button-row">
+	  <button id="export" type="button">Export Variables</button>
+	  <button id="download" type="button">Download theme.json</button>
+	</div>
+	<textarea
+	  placeholder="Exported variables will render here in WordPress theme.json format with CSS custom property references..."
+	  readonly
+	></textarea>
+  </main>
+  <script>
+	let currentFiles = [];
+
+	window.onmessage = ({ data: { pluginMessage } }) => {
+	  if (pluginMessage.type === "EXPORT_RESULT") {
+		currentFiles = pluginMessage.files;
+		document.querySelector("textarea").innerHTML = currentFiles
+		  .map(
+			({ fileName, body }) =>
+			  `/* ${fileName} */\n\n${JSON.stringify(body, null, 2)}`
+		  )
+		  .join("\n\n\n");
+		
+		// Show download button if we have files
+		if (currentFiles.length > 0) {
+		  document.getElementById("download").style.display = "block";
+		}
+	  }
+	};
+
+	document.getElementById("export").addEventListener("click", () => {
+	  parent.postMessage({ pluginMessage: { type: "EXPORT" } }, "*");
+	});
+
+	document.getElementById("download").addEventListener("click", () => {
+	  if (currentFiles.length === 0) return;
+	  
+	  // If there's only one file, download it directly
+	  if (currentFiles.length === 1) {
+		downloadFile(
+		  currentFiles[0].fileName, 
+		  JSON.stringify(currentFiles[0].body, null, 2)
+		);
+	  } else {
+		// If multiple files, create a zip file (for future implementation)
+		// For now, download the first file
+		downloadFile(
+		  currentFiles[0].fileName, 
+		  JSON.stringify(currentFiles[0].body, null, 2)
+		);
+	  }
+	});
+
+	function downloadFile(filename, content) {
+	  const blob = new Blob([content], { type: "application/json" });
+	  const url = URL.createObjectURL(blob);
+	  const link = document.createElement("a");
+	  link.href = url;
+	  link.download = filename;
+	  document.body.appendChild(link);
+	  link.click();
+	  document.body.removeChild(link);
+	  URL.revokeObjectURL(url);
+	}
+  </script>
