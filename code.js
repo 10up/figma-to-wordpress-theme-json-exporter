@@ -1,20 +1,22 @@
 console.clear();
 
 function createCollection(name) {
-  const collection = figma.variables.createVariableCollection(name);
+  const lowercaseName = name.toLowerCase();
+  const collection = figma.variables.createVariableCollection(lowercaseName);
   const modeId = collection.modes[0].modeId;
   return { collection, modeId };
 }
 
 function createToken(collection, modeId, type, name, value) {
-  const token = figma.variables.createVariable(name, collection, type);
+  const lowercaseName = name.toLowerCase();
+  const token = figma.variables.createVariable(lowercaseName, collection, type);
   token.setValueForMode(modeId, value);
   return token;
 }
 
 function createVariable(collection, modeId, key, valueKey, tokens) {
   const token = tokens[valueKey];
-  return createToken(collection, modeId, token.resolvedType, key, {
+  return createToken(collection, modeId, token.resolvedType, key.toLowerCase(), {
     type: "VARIABLE_ALIAS",
     id: `${token.id}`,
   });
@@ -22,7 +24,7 @@ function createVariable(collection, modeId, key, valueKey, tokens) {
 
 function importJSONFile({ fileName, body }) {
   const json = JSON.parse(body);
-  const { collection, modeId } = createCollection(fileName);
+  const { collection, modeId } = createCollection(fileName.toLowerCase());
   const aliases = {};
   const tokens = {};
   Object.entries(json).forEach(([key, object]) => {
@@ -30,7 +32,7 @@ function importJSONFile({ fileName, body }) {
       collection,
       modeId,
       type: json.$type,
-      key,
+      key: key.toLowerCase(),
       object,
       tokens,
       aliases,
@@ -78,7 +80,8 @@ function traverseToken({
       const valueKey = object.$value
         .trim()
         .replace(/\./g, "/")
-        .replace(/[\{\}]/g, "");
+        .replace(/[\{\}]/g, "")
+        .toLowerCase();
       if (tokens[valueKey]) {
         tokens[key] = createVariable(collection, modeId, key, valueKey, tokens);
       } else {
@@ -114,7 +117,7 @@ function traverseToken({
           collection,
           modeId,
           type,
-          key: `${key}/${key2}`,
+          key: `${key}/${key2.toLowerCase()}`,
           object: object2,
           tokens,
           aliases,
@@ -131,8 +134,8 @@ function camelToKebabCase(str) {
 
 // Helper function to build a WordPress custom property path
 function buildWpCustomPropertyPath(nameParts) {
-  // Convert each part to kebab case
-  const kebabParts = nameParts.map(part => camelToKebabCase(part));
+  // Convert each part to lowercase and then kebab case
+  const kebabParts = nameParts.map(part => camelToKebabCase(part.toLowerCase()));
   // Join with -- and prefix with --wp--custom--
   return `--wp--custom--${kebabParts.join('--')}`;
 }
@@ -153,10 +156,23 @@ async function exportToJSON() {
 
 async function processCollection({ name, modes, variableIds }) {
   const files = [];
-  for (const mode of modes) {
+  
+  // Check if this collection has exactly two modes named "Desktop" and "Mobile"
+  const isFluidCollection = modes.length === 2 && 
+    modes.some(mode => mode.name.toLowerCase() === "desktop") && 
+    modes.some(mode => mode.name.toLowerCase() === "mobile");
+  
+  if (isFluidCollection) {
+    // Handle fluid responsive collection with a single theme.json
+    // Find the Desktop and Mobile mode IDs
+    const desktopMode = modes.find(mode => mode.name.toLowerCase() === "desktop");
+    const mobileMode = modes.find(mode => mode.name.toLowerCase() === "mobile");
+    const desktopModeId = desktopMode.modeId;
+    const mobileModeId = mobileMode.modeId;
+    
     // Initialize proper theme.json structure with version
     const file = { 
-      fileName: `${name}.${mode.name}.theme.json`, 
+      fileName: `${name.toLowerCase()}.theme.json`, 
       body: {
         version: 3,
         settings: {
@@ -168,15 +184,21 @@ async function processCollection({ name, modes, variableIds }) {
     // Create a temporary object to hold our variable structure
     const variablesData = {};
     
+    // Process all variables
     for (const variableId of variableIds) {
       const { name, resolvedType, valuesByMode } =
         await figma.variables.getVariableByIdAsync(variableId);
-      const value = valuesByMode[mode.modeId];
       
-      if (value !== undefined && ["COLOR", "FLOAT"].includes(resolvedType)) {
+      const desktopValue = valuesByMode[desktopModeId];
+      const mobileValue = valuesByMode[mobileModeId];
+      
+      if (desktopValue !== undefined && mobileValue !== undefined && 
+          ["COLOR", "FLOAT"].includes(resolvedType)) {
+        
         // Build the nested structure in our temporary object
         let obj = variablesData;
-        const nameParts = name.split("/");
+        // Convert the name parts to lowercase
+        const nameParts = name.split("/").map(part => part.toLowerCase());
         
         // Navigate to the appropriate nesting level
         for (let i = 0; i < nameParts.length - 1; i++) {
@@ -188,15 +210,53 @@ async function processCollection({ name, modes, variableIds }) {
         // Set the actual value at the leaf node
         const leafName = nameParts[nameParts.length - 1];
         
-        if (value.type === "VARIABLE_ALIAS") {
-          const currentVar = await figma.variables.getVariableByIdAsync(
-            value.id
-          );
-          // Convert the reference to a CSS custom property reference
-          const referenceParts = currentVar.name.split("/");
-          obj[leafName] = buildCssVarReference(referenceParts);
+        if (desktopValue.type === "VARIABLE_ALIAS" && mobileValue.type === "VARIABLE_ALIAS") {
+          // Both are references
+          const desktopVar = await figma.variables.getVariableByIdAsync(desktopValue.id);
+          const mobileVar = await figma.variables.getVariableByIdAsync(mobileValue.id);
+          
+          // Convert the references to CSS custom property references
+          const desktopReferenceParts = desktopVar.name.split("/").map(part => part.toLowerCase());
+          const mobileReferenceParts = mobileVar.name.split("/").map(part => part.toLowerCase());
+          
+          const maxValue = buildCssVarReference(desktopReferenceParts);
+          const minValue = buildCssVarReference(mobileReferenceParts);
+          
+          // If min and max are the same, use the value directly
+          if (maxValue === minValue) {
+            obj[leafName] = maxValue;
+          } else {
+            obj[leafName] = {
+              fluid: true,
+              min: minValue,
+              max: maxValue
+            };
+          }
+        } else if (desktopValue.type === "VARIABLE_ALIAS" || mobileValue.type === "VARIABLE_ALIAS") {
+          // Only one is a reference, the other is a direct value
+          // This is a complex case - for simplicity, we'll use the desktop value
+          if (desktopValue.type === "VARIABLE_ALIAS") {
+            const desktopVar = await figma.variables.getVariableByIdAsync(desktopValue.id);
+            const desktopReferenceParts = desktopVar.name.split("/").map(part => part.toLowerCase());
+            obj[leafName] = buildCssVarReference(desktopReferenceParts);
+          } else {
+            obj[leafName] = resolvedType === "COLOR" ? rgbToHex(desktopValue) : desktopValue;
+          }
         } else {
-          obj[leafName] = resolvedType === "COLOR" ? rgbToHex(value) : value;
+          // Both are direct values
+          const maxValue = resolvedType === "COLOR" ? rgbToHex(desktopValue) : desktopValue;
+          const minValue = resolvedType === "COLOR" ? rgbToHex(mobileValue) : mobileValue;
+          
+          // If min and max are the same, use the value directly
+          if (JSON.stringify(maxValue) === JSON.stringify(minValue)) {
+            obj[leafName] = maxValue;
+          } else {
+            obj[leafName] = {
+              fluid: true,
+              min: minValue,
+              max: maxValue
+            };
+          }
         }
       }
     }
@@ -205,7 +265,64 @@ async function processCollection({ name, modes, variableIds }) {
     file.body.settings.custom = variablesData;
     
     files.push(file);
+  } else {
+    // Handle regular collection with separate theme.json files for each mode
+    for (const mode of modes) {
+      // Initialize proper theme.json structure with version
+      const file = { 
+        fileName: `${name.toLowerCase()}.${mode.name.toLowerCase()}.theme.json`, 
+        body: {
+          version: 3,
+          settings: {
+            custom: {}
+          }
+        } 
+      };
+      
+      // Create a temporary object to hold our variable structure
+      const variablesData = {};
+      
+      for (const variableId of variableIds) {
+        const { name, resolvedType, valuesByMode } =
+          await figma.variables.getVariableByIdAsync(variableId);
+        const value = valuesByMode[mode.modeId];
+        
+        if (value !== undefined && ["COLOR", "FLOAT"].includes(resolvedType)) {
+          // Build the nested structure in our temporary object
+          let obj = variablesData;
+          // Convert the name parts to lowercase
+          const nameParts = name.split("/").map(part => part.toLowerCase());
+          
+          // Navigate to the appropriate nesting level
+          for (let i = 0; i < nameParts.length - 1; i++) {
+            const part = nameParts[i];
+            obj[part] = obj[part] || {};
+            obj = obj[part];
+          }
+          
+          // Set the actual value at the leaf node
+          const leafName = nameParts[nameParts.length - 1];
+          
+          if (value.type === "VARIABLE_ALIAS") {
+            const currentVar = await figma.variables.getVariableByIdAsync(
+              value.id
+            );
+            // Convert the reference to a CSS custom property reference with lowercase parts
+            const referenceParts = currentVar.name.split("/").map(part => part.toLowerCase());
+            obj[leafName] = buildCssVarReference(referenceParts);
+          } else {
+            obj[leafName] = resolvedType === "COLOR" ? rgbToHex(value) : value;
+          }
+        }
+      }
+      
+      // Add all the variables to the settings.custom section
+      file.body.settings.custom = variablesData;
+      
+      files.push(file);
+    }
   }
+  
   return files;
 }
 
