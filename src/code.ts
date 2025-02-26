@@ -2,39 +2,131 @@ console.clear();
 
 async function exportToJSON() {
 	const collections = await figma.variables.getLocalVariableCollectionsAsync();
-	const files = [];
-	for (const collection of collections) {
-		files.push(...(await processCollection(collection)));
+	
+	// Find the "Primitives" collection first
+	const primitivesCollection = collections.find(
+		collection => collection.name.toLowerCase() === "primitives"
+	);
+	
+	if (!primitivesCollection) {
+		figma.ui.postMessage({ 
+			type: "EXPORT_RESULT", 
+			error: "No 'Primitives' collection found. This is required as the base theme." 
+		});
+		return;
 	}
-	figma.ui.postMessage({ type: "EXPORT_RESULT", files });
+
+	// Process the primitives collection first to create our base theme
+	const baseThemeData = await processCollectionData(primitivesCollection);
+
+	// Create the base theme file
+	const themeFile = {
+		fileName: "theme.json",
+		body: {
+			version: 3,
+			settings: {
+				custom: baseThemeData
+			}
+		}
+	};
+
+	// Process all other collections and merge them into the base theme
+	for (const collection of collections) {
+		// Skip the primitives collection as we've already processed it
+		if (collection.name.toLowerCase() === "primitives") {
+			continue;
+		}
+
+		// Process this collection's data
+		const collectionData = await processCollectionData(collection);
+		
+		// Determine where to merge this collection's data based on its name
+		const collectionName = collection.name.toLowerCase();
+		
+		// Merge the collection data into the appropriate location in the base theme
+		mergeCollectionData(themeFile.body.settings.custom, collectionName, collectionData);
+	}
+
+	figma.ui.postMessage({ type: "EXPORT_RESULT", files: [themeFile] });
 }
 
-async function processCollection({ name, modes, variableIds }: VariableCollection) {
-	const files = [];
+// Helper function to merge collection data into the base theme at the appropriate location
+function mergeCollectionData(baseTheme, collectionName, collectionData) {
+	// If a matching section already exists in the base theme, merge into it
+	if (baseTheme[collectionName]) {
+		// Deep merge the collection data with the existing section
+		baseTheme[collectionName] = deepMerge(baseTheme[collectionName], collectionData);
+	} else {
+		// If no matching section exists, add the entire collection to the base theme
+		baseTheme[collectionName] = collectionData;
+	}
+}
 
+// Helper function to perform a deep merge of objects
+function deepMerge(target, source) {
+	// If either is not an object, return source (overwrite)
+	if (typeof target !== 'object' || typeof source !== 'object') {
+		return source;
+	}
+	
+	// Create a new object to avoid modifying the originals
+	const result = { ...target };
+	
+	// Iterate through all properties of source
+	for (const key in source) {
+		// If property exists in both and both are objects, recursively merge
+		if (key in result && typeof result[key] === 'object' && typeof source[key] === 'object') {
+			result[key] = deepMerge(result[key], source[key]);
+		} else {
+			// Otherwise just copy the property from source
+			result[key] = source[key];
+		}
+	}
+	
+	return result;
+}
+
+// Helper function to check if a value appears to be a variable alias
+function isVariableAlias(value: any): boolean {
+	return value && typeof value === 'object' && value.type === "VARIABLE_ALIAS";
+}
+
+// Helper function to determine if a value should have 'px' units appended
+function shouldAddPxUnit(nameParts: string[], value: any): boolean {
+	// Skip if value is not a number or is already a string
+	if (typeof value !== 'number' || value === 0) {
+		return false;
+	}
+	
+	// Categories that should have px units
+	const pxCategories = ['spacing', 'font', 'size', 'grid', 'radius', 'width', 'height'];
+	
+	// Check if any of the path parts match our px categories
+	return nameParts.some(part => pxCategories.includes(part.toLowerCase()));
+}
+
+// Helper function to format value with px units when appropriate
+function formatValueWithUnits(nameParts: string[], value: any): any {
+	if (shouldAddPxUnit(nameParts, value)) {
+		return `${value}px`;
+	}
+	return value;
+}
+
+// Helper function to process a collection and extract its data structure
+async function processCollectionData({ name, modes, variableIds }: VariableCollection) {
 	// Check if this collection has exactly two modes named "Desktop" and "Mobile"
 	const isFluidCollection = modes.length === 2 &&
 		modes.some(mode => mode.name.toLowerCase() === "desktop") &&
 		modes.some(mode => mode.name.toLowerCase() === "mobile");
 
 	if (isFluidCollection) {
-		// Handle fluid responsive collection with a single theme.json
+		// Handle fluid responsive collection
 		// Find the Desktop and Mobile mode IDs
 		const desktopMode = modes.find(mode => mode.name.toLowerCase() === "desktop");
 		const mobileMode = modes.find(mode => mode.name.toLowerCase() === "mobile");
 		const desktopModeId = desktopMode.modeId;
 		const mobileModeId = mobileMode.modeId;
-
-		// Initialize proper theme.json structure with version
-		const file = {
-			fileName: `${name.toLowerCase()}.theme.json`,
-			body: {
-				version: 3,
-				settings: {
-					custom: {}
-				}
-			}
-		};
 
 		// Create a temporary object to hold our variable structure
 		const variablesData = {};
@@ -65,10 +157,10 @@ async function processCollection({ name, modes, variableIds }: VariableCollectio
 				// Set the actual value at the leaf node
 				const leafName = nameParts[nameParts.length - 1];
 
-				if (desktopValue.type === "VARIABLE_ALIAS" && mobileValue.type === "VARIABLE_ALIAS") {
+				if (isVariableAlias(desktopValue) && isVariableAlias(mobileValue)) {
 					// Both are references
-					const desktopVar = await figma.variables.getVariableByIdAsync(desktopValue.id);
-					const mobileVar = await figma.variables.getVariableByIdAsync(mobileValue.id);
+					const desktopVar = await figma.variables.getVariableByIdAsync((desktopValue as any).id);
+					const mobileVar = await figma.variables.getVariableByIdAsync((mobileValue as any).id);
 
 					// Convert the references to CSS custom property references
 					const desktopReferenceParts = desktopVar.name.split("/").map(part => part.toLowerCase());
@@ -87,20 +179,25 @@ async function processCollection({ name, modes, variableIds }: VariableCollectio
 							max: maxValue
 						};
 					}
-				} else if (desktopValue.type === "VARIABLE_ALIAS" || mobileValue.type === "VARIABLE_ALIAS") {
+				} else if (isVariableAlias(desktopValue) || isVariableAlias(mobileValue)) {
 					// Only one is a reference, the other is a direct value
-					// This is a complex case - for simplicity, we'll use the desktop value
-					if (desktopValue.type === "VARIABLE_ALIAS") {
-						const desktopVar = await figma.variables.getVariableByIdAsync(desktopValue.id);
+					if (isVariableAlias(desktopValue)) {
+						const desktopVar = await figma.variables.getVariableByIdAsync((desktopValue as any).id);
 						const desktopReferenceParts = desktopVar.name.split("/").map(part => part.toLowerCase());
 						obj[leafName] = buildCssVarReference(desktopReferenceParts);
 					} else {
-						obj[leafName] = resolvedType === "COLOR" ? rgbToHex(desktopValue) : desktopValue;
+						obj[leafName] = resolvedType === "COLOR" ? 
+							rgbToHex(desktopValue) : 
+							formatValueWithUnits(nameParts, desktopValue);
 					}
 				} else {
 					// Both are direct values
-					const maxValue = resolvedType === "COLOR" ? rgbToHex(desktopValue) : desktopValue;
-					const minValue = resolvedType === "COLOR" ? rgbToHex(mobileValue) : mobileValue;
+					const maxValue = resolvedType === "COLOR" ? 
+						rgbToHex(desktopValue) : 
+						formatValueWithUnits(nameParts, desktopValue);
+					const minValue = resolvedType === "COLOR" ? 
+						rgbToHex(mobileValue) : 
+						formatValueWithUnits(nameParts, mobileValue);
 
 					// If min and max are the same, use the value directly
 					if (JSON.stringify(maxValue) === JSON.stringify(minValue)) {
@@ -116,69 +213,49 @@ async function processCollection({ name, modes, variableIds }: VariableCollectio
 			}
 		}
 
-		// Add all the variables to the settings.custom section
-		file.body.settings.custom = variablesData;
-
-		files.push(file);
+		return variablesData;
 	} else {
-		// Handle regular collection with separate theme.json files for each mode
-		for (const mode of modes) {
-			// Initialize proper theme.json structure with version
-			const file = {
-				fileName: `${name.toLowerCase()}.${mode.name.toLowerCase()}.theme.json`,
-				body: {
-					version: 3,
-					settings: {
-						custom: {}
-					}
+		// Handle regular collection with a single mode
+		// For simplicity, we'll use the first mode if multiple are present
+		const mode = modes[0];
+		const variablesData = {};
+
+		for (const variableId of variableIds) {
+			const { name, resolvedType, valuesByMode } =
+				await figma.variables.getVariableByIdAsync(variableId);
+			const value = valuesByMode[mode.modeId];
+
+			if (value !== undefined && ["COLOR", "FLOAT"].includes(resolvedType)) {
+				// Build the nested structure in our temporary object
+				let obj = variablesData;
+				// Convert the name parts to lowercase
+				const nameParts = name.split("/").map(part => part.toLowerCase());
+
+				// Navigate to the appropriate nesting level
+				for (let i = 0; i < nameParts.length - 1; i++) {
+					const part = nameParts[i];
+					obj[part] = obj[part] || {};
+					obj = obj[part];
 				}
-			};
 
-			// Create a temporary object to hold our variable structure
-			const variablesData = {};
+				// Set the actual value at the leaf node
+				const leafName = nameParts[nameParts.length - 1];
 
-			for (const variableId of variableIds) {
-				const { name, resolvedType, valuesByMode } =
-					await figma.variables.getVariableByIdAsync(variableId);
-				const value = valuesByMode[mode.modeId];
-
-				if (value !== undefined && ["COLOR", "FLOAT"].includes(resolvedType)) {
-					// Build the nested structure in our temporary object
-					let obj = variablesData;
-					// Convert the name parts to lowercase
-					const nameParts = name.split("/").map(part => part.toLowerCase());
-
-					// Navigate to the appropriate nesting level
-					for (let i = 0; i < nameParts.length - 1; i++) {
-						const part = nameParts[i];
-						obj[part] = obj[part] || {};
-						obj = obj[part];
-					}
-
-					// Set the actual value at the leaf node
-					const leafName = nameParts[nameParts.length - 1];
-
-					if (value.type === "VARIABLE_ALIAS") {
-						const currentVar = await figma.variables.getVariableByIdAsync(
-							value.id
-						);
-						// Convert the reference to a CSS custom property reference with lowercase parts
-						const referenceParts = currentVar.name.split("/").map(part => part.toLowerCase());
-						obj[leafName] = buildCssVarReference(referenceParts);
-					} else {
-						obj[leafName] = resolvedType === "COLOR" ? rgbToHex(value) : value;
-					}
+				if (isVariableAlias(value)) {
+					const currentVar = await figma.variables.getVariableByIdAsync((value as any).id);
+					// Convert the reference to a CSS custom property reference with lowercase parts
+					const referenceParts = currentVar.name.split("/").map(part => part.toLowerCase());
+					obj[leafName] = buildCssVarReference(referenceParts);
+				} else {
+					obj[leafName] = resolvedType === "COLOR" ? 
+						rgbToHex(value) : 
+						formatValueWithUnits(nameParts, value);
 				}
 			}
-
-			// Add all the variables to the settings.custom section
-			file.body.settings.custom = variablesData;
-
-			files.push(file);
 		}
-	}
 
-	return files;
+		return variablesData;
+	}
 }
 
 figma.ui.onmessage = async (e) => {
@@ -218,7 +295,15 @@ function buildCssVarReference(nameParts: string[]) {
 	return `var(${buildWpCustomPropertyPath(nameParts)})`;
 }
 
-function rgbToHex({ r, g, b, a }) {
+// Fix the rgbToHex function to handle both direct RGB values and variable aliases
+function rgbToHex(color: any) {
+	// If color is already a string (happens sometimes with rgba values), return it
+	if (typeof color === "string") {
+		return color;
+	}
+
+	const { r, g, b, a = 1 } = color;
+	
 	if (a !== 1) {
 		return `rgba(${[r, g, b]
 			.map((n) => Math.round(n * 255))
