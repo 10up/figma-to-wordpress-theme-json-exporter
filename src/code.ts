@@ -589,8 +589,8 @@ function processButtonStyles(buttonData: Record<string, any>, allFiles: any[]): 
 				},
 				"styles": {
 					"color": {
-						"background": buttonData[variantName].default?.background || 
-							`var(--wp--custom--color--button--${variantSlug}--default--background)`
+						"background": "var(--wp--custom--color--button--default--background)",
+						"text": "var(--wp--custom--color--button--default--text)"
 					}
 				}
 			}
