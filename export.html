@@ -119,6 +119,8 @@
 	  readonly
 	></textarea>
   </main>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
   <script>
 	let currentFiles = [];
 
@@ -135,6 +137,11 @@
 		// Show download button if we have files
 		if (currentFiles.length > 0) {
 		  document.getElementById("download").style.display = "block";
+		  // Update button text to indicate it's a zip download if multiple files
+		  const downloadBtn = document.getElementById("download");
+		  downloadBtn.textContent = currentFiles.length > 1 
+			? `Download Theme Files (${currentFiles.length} files)` 
+			: "Download theme.json";
 		}
 	  }
 	};
@@ -153,12 +160,8 @@
 		  JSON.stringify(currentFiles[0].body, null, 2)
 		);
 	  } else {
-		// If multiple files, create a zip file (for future implementation)
-		// For now, download the first file
-		downloadFile(
-		  currentFiles[0].fileName, 
-		  JSON.stringify(currentFiles[0].body, null, 2)
-		);
+		// If multiple files, create a zip file
+		createAndDownloadZip(currentFiles);
 	  }
 	});
 
@@ -172,5 +175,30 @@
 	  link.click();
 	  document.body.removeChild(link);
 	  URL.revokeObjectURL(url);
+	}
+
+	function createAndDownloadZip(files) {
+	  const zip = new JSZip();
+	  
+	  // Add all files to the zip with proper directory structure
+	  files.forEach(file => {
+		const { fileName, body } = file;
+		
+		// Handle directory paths in the filename
+		if (fileName.includes('/')) {
+		  const folderPath = fileName.substring(0, fileName.lastIndexOf('/'));
+		  const folderObj = zip.folder(folderPath);
+		  const baseName = fileName.substring(fileName.lastIndexOf('/') + 1);
+		  folderObj.file(baseName, JSON.stringify(body, null, 2));
+		} else {
+		  // Regular file at root level
+		  zip.file(fileName, JSON.stringify(body, null, 2));
+		}
+	  });
+	  
+	  // Generate the zip file and trigger download
+	  zip.generateAsync({ type: "blob" }).then(function(content) {
+		saveAs(content, "wordpress-theme-files.zip");
+	  });
 	}
   </script>
