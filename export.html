@@ -183,6 +183,67 @@
 	  cursor: pointer;
 	}
 
+	.file-upload {
+	  margin-top: var(--spacing);
+	  padding-top: var(--spacing);
+	  border-top: 1px solid var(--figma-color-border);
+	}
+
+	.file-upload-label {
+	  display: block;
+	  font-size: 0.9rem;
+	  margin-bottom: calc(var(--spacing) / 2);
+	  color: var(--figma-color-text);
+	}
+
+	.file-upload-info {
+	  font-size: 0.8rem;
+	  color: var(--figma-color-text-secondary);
+	  margin-top: calc(var(--spacing) / 2);
+	}
+
+	.file-upload-row {
+	  display: flex;
+	  gap: var(--spacing);
+	  align-items: center;
+	}
+
+	.file-upload-button {
+	  background-color: var(--figma-color-bg);
+	  color: var(--figma-color-text);
+	  padding: calc(var(--spacing) / 2);
+	  font-size: 0.9rem;
+	  border: 1px solid var(--figma-color-border);
+	  border-radius: 4px;
+	  cursor: pointer;
+	}
+
+	.file-upload-button:hover {
+	  background-color: var(--figma-color-bg-hover);
+	}
+
+	.file-upload-name {
+	  font-size: 0.9rem;
+	  color: var(--figma-color-text-secondary);
+	  white-space: nowrap;
+	  overflow: hidden;
+	  text-overflow: ellipsis;
+	}
+
+	.file-upload-clear {
+	  background: none;
+	  border: none;
+	  color: var(--figma-color-text-secondary);
+	  padding: 0;
+	  cursor: pointer;
+	  font-size: 0.8rem;
+	}
+
+	.file-upload-clear:hover {
+	  color: var(--figma-color-text);
+	  text-decoration: underline;
+	}
+
 	/* Resize handle styles */
 	.resize-handle {
 	  position: absolute;
@@ -254,6 +315,18 @@
 		<input type="checkbox" id="generate-typography" />
 		<label for="generate-typography">Generate typography presets from text styles</label>
 	  </div>
+	  <div class="file-upload">
+		<label class="file-upload-label">Base theme.json</label>
+		<div class="file-upload-row">
+			<input type="file" id="base-theme" accept=".json" style="display: none;" />
+			<button type="button" class="file-upload-button" id="upload-button">Choose File</button>
+			<div class="file-upload-name" id="file-name">No file chosen</div>
+			<button type="button" class="file-upload-clear" id="clear-file" style="display: none;">Clear</button>
+		</div>
+		<div class="file-upload-info">
+			Upload an existing theme.json file to merge the exported variables into it.
+		</div>
+	  </div>
 	</div>
 	
 	<div class="button-row">
@@ -272,6 +345,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
   <script>
 	let currentFiles = [];
+	let baseTheme = null;
 
 	// Setup resize functionality
 	const resizeHandle = document.getElementById('resize-handle');
@@ -415,6 +489,40 @@
 	  }, 2000);
 	}
 
+	// Setup file upload functionality
+	const fileInput = document.getElementById('base-theme');
+	const uploadButton = document.getElementById('upload-button');
+	const fileName = document.getElementById('file-name');
+	const clearFile = document.getElementById('clear-file');
+
+	uploadButton.addEventListener('click', () => {
+		fileInput.click();
+	});
+
+	fileInput.addEventListener('change', async (event) => {
+		const file = event.target.files[0];
+		if (!file) return;
+
+		try {
+			const content = await file.text();
+			baseTheme = JSON.parse(content);
+			
+			fileName.textContent = file.name;
+			clearFile.style.display = 'block';
+		} catch (error) {
+			console.error('Error reading file:', error);
+			fileName.textContent = 'Error reading file';
+			baseTheme = null;
+		}
+	});
+
+	clearFile.addEventListener('click', () => {
+		fileInput.value = '';
+		fileName.textContent = 'No file chosen';
+		clearFile.style.display = 'none';
+		baseTheme = null;
+	});
+
 	document.getElementById("export").addEventListener("click", () => {
 	  // Get the state of the typography checkbox
 	  const generateTypography = document.getElementById("generate-typography").checked;
@@ -424,7 +532,8 @@
 		pluginMessage: { 
 		  type: "EXPORT",
 		  options: {
-			generateTypography
+			generateTypography,
+			baseTheme
 		  }
 		} 
 	  }, "*");

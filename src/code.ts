@@ -16,6 +16,7 @@ const processedButtonVariants = new Set<string>();
 // Interface for export options
 interface ExportOptions {
 	generateTypography?: boolean;
+	baseTheme?: any;
 }
 
 async function exportToJSON(options: ExportOptions = {}) {
@@ -28,47 +29,33 @@ async function exportToJSON(options: ExportOptions = {}) {
 	const primitivesCollection = collections.find(
 		collection => collection.name.toLowerCase() === "primitives"
 	);
-	
-	if (!primitivesCollection) {
-		figma.ui.postMessage({ 
-			type: "EXPORT_RESULT", 
-			error: "No 'Primitives' collection found. This is required as the base theme." 
-		});
-		return;
-	}
 
-	// Process the primitives collection first to create our base theme
-	const baseThemeData = await processCollectionData(primitivesCollection);
-
-	// Create the base theme file with properly typed custom settings
-	const themeFile = {
-		fileName: "theme.json",
-		body: {
-			version: 3,
-			settings: {
-				custom: baseThemeData as ThemeCustomSettings
-			}
+	// Start with the base theme if provided, otherwise create a new theme object
+	let theme = options.baseTheme || {
+		"$schema": "https://schemas.wp.org/trunk/theme.json",
+		"version": 3,
+		"settings": {
+			"custom": {}
 		}
 	};
 
-	// If typography presets are enabled, add them to the theme.json
-	if (options.generateTypography) {
-		// Get typography presets from text styles
-		const typographyPresets = await getTypographyPresets();
-		
-		// Ensure the typography object exists in the custom settings
-		if (!themeFile.body.settings.custom.typography) {
-			themeFile.body.settings.custom.typography = {};
-		}
-		
-		// Add presets to theme.json
-		themeFile.body.settings.custom.typography.presets = typographyPresets;
-	}
+	// Ensure the theme has the required structure
+	theme.settings = theme.settings || {};
+	theme.settings.custom = theme.settings.custom || {};
 
 	// Array to store all files we need to output
-	const allFiles = [themeFile];
+	const allFiles = [{
+		fileName: "theme.json",
+		body: theme
+	}];
 
-	// Process all other collections and merge them into the base theme
+	// Process the primitives collection first if it exists
+	if (primitivesCollection) {
+		const primitivesData = await processCollectionData(primitivesCollection);
+		mergeCollectionData(theme.settings.custom, "", primitivesData);
+	}
+
+	// Process all other collections
 	for (const collection of collections) {
 		// Skip the primitives collection as we've already processed it
 		if (collection.name.toLowerCase() === "primitives") {
@@ -86,7 +73,7 @@ async function exportToJSON(options: ExportOptions = {}) {
 			}
 			
 			// Merge the first mode data into the appropriate location in the base theme
-			mergeCollectionData(themeFile.body.settings.custom, "color", firstModeData);
+			mergeCollectionData(theme.settings.custom, "color", firstModeData);
 			
 			// Output the first mode as a separate file too
 			const firstMode = collection.modes[0];
@@ -113,7 +100,7 @@ async function exportToJSON(options: ExportOptions = {}) {
 				}
 			};
 			allFiles.push(firstModeSectionFile);
-			
+
 			// Process additional modes for the Color collection
 			for (let i = 1; i < collection.modes.length; i++) {
 				const mode = collection.modes[i];
@@ -123,7 +110,7 @@ async function exportToJSON(options: ExportOptions = {}) {
 				if (modeData && 'button' in modeData) {
 					processButtonStyles(modeData.button as Record<string, any>, allFiles);
 				}
-				
+
 				// Create separate file for this color mode
 				const modeNameSlug = mode.name.toLowerCase().replace(/\s+/g, '-');
 				const sectionFile = {
@@ -160,11 +147,24 @@ async function exportToJSON(options: ExportOptions = {}) {
 			const collectionName = collection.name.toLowerCase();
 			
 			// Merge the collection data into the appropriate location in the base theme
-			mergeCollectionData(themeFile.body.settings.custom, collectionName, collectionData);
+			mergeCollectionData(theme.settings.custom, collectionName, collectionData);
 		}
 	}
 
-	figma.ui.postMessage({ type: "EXPORT_RESULT", files: allFiles });
+	// Add typography presets if requested
+	if (options.generateTypography) {
+		const typographyPresets = await getTypographyPresets();
+		if (typographyPresets.length > 0) {
+			theme.settings.custom.typography = theme.settings.custom.typography || {};
+			theme.settings.custom.typography.presets = typographyPresets;
+		}
+	}
+
+	// Send the result back to the UI
+	figma.ui.postMessage({
+		type: "EXPORT_RESULT",
+		files: allFiles
+	});
 }
 
 // Helper function to ensure font property variables have the proper WordPress path structure
