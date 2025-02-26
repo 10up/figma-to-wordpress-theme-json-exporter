@@ -35,7 +35,7 @@ jobs:
       run: |
         mkdir plugin-bundle
         cp manifest.json plugin-bundle/
-        cp -r dist/* plugin-bundle/
+        cp -r dist/* plugin-bundle/dist/
         cp export.html plugin-bundle/
 
     - name: Create zip archive
