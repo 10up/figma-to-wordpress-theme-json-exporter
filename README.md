@@ -8,14 +8,18 @@ This Figma plugin converts Figma design tokens/variables into WordPress theme.js
 - Properly structures data according to WordPress theme.json specification
 - Converts variable references to CSS custom properties using WordPress naming convention
 - Maintains variable hierarchies and references
-- Supports downloading the generated theme.json file directly
+- Special handling for color modes and sections
+- Automatic generation of button variant style files
+- Support for responsive/fluid variables
+- Automatic unit handling (px) for specific value types
+- Supports downloading the generated files as a zip package
 
 ## Usage
 
 1. **To export Figma variables to theme.json:**
    - Go to Menu > Plugins > WordPress Theme.json Export > Export to theme.json
-   - View the generated theme.json in the plugin UI
-   - Click "Download theme.json" to save the file
+   - View the generated theme.json and additional style files in the plugin UI
+   - Click "Download Theme Files" to save all files as a zip package
 
 2. **To import variables:**
    - Go to Menu > Plugins > WordPress Theme.json Export > Import Variables
@@ -34,16 +38,75 @@ The plugin generates a valid WordPress theme.json file with all variables placed
       "color": {
         "primary": "#000000",
         "secondary": "#ffffff",
-        "accent": "var(--wp--custom--color--primary)"
+        "accent": "var(--wp--custom--color--primary)",
+        "button": {
+          "default": {
+            "background": "var(--wp--custom--color--button--primary--default--background)",
+            "text": "var(--wp--custom--color--button--primary--default--text)"
+          },
+          "hover": {
+            "background": "var(--wp--custom--color--button--primary--hover--background)",
+            "text": "var(--wp--custom--color--button--primary--hover--text)"
+          }
+        }
       },
       "spacing": {
-        "base": 8,
-        "large": 24
+        "base": "8px",
+        "large": "24px"
       }
     }
   }
 }
 ```
+
+### Special Collection Handling
+
+The plugin provides special handling for certain Figma variable collections:
+
+#### Primitives Collection
+
+Variables from a collection named "Primitives" are used as the base theme and are always processed first.
+
+#### Color Collection with Multiple Modes
+
+If a collection named "Color" has multiple modes:
+- The first mode is merged into the main theme.json
+- Each mode (including the first) is also exported as a separate file: `styles/section-{mode-name}.json`
+- These files include proper metadata for WordPress theme variations
+
+#### Button Styles
+
+When the "Color" collection includes a "button" group with variants:
+- Button variant properties from the primary button are referenced at the root level with CSS variables
+- Each non-primary button variant (e.g., secondary, tertiary, etc.) is exported as a separate file: `styles/button-{variant-name}.json`
+- These files include proper metadata for WordPress block style variations
+
+### Responsive/Fluid Variables
+
+If a collection has exactly two modes named "Desktop" and "Mobile", the plugin treats them as responsive variables:
+
+```json
+{
+  "spacing": {
+    "base": {
+      "fluid": true,
+      "min": "8px",
+      "max": "16px"
+    }
+  }
+}
+```
+
+### Units Handling
+
+The plugin automatically adds "px" units to numeric values in appropriate categories:
+- spacing
+- font
+- size
+- grid
+- radius
+- width
+- height
 
 ### CSS Custom Properties
 
@@ -61,6 +124,26 @@ settings.custom.colorPalette.brandAccent → var(--wp--custom--color-palette--br
 This ensures that your theme.json file follows WordPress best practices and that all variable references will work correctly in your theme.
 
 For more information on the WordPress theme.json format, see the [WordPress documentation](https://developer.wordpress.org/block-editor/how-to-guides/themes/global-settings-and-styles/).
+
+## Output Files
+
+The plugin generates several types of files:
+
+1. **Main theme.json**
+   - Contains the base theme settings from the "Primitives" collection
+   - Includes the first mode of the "Color" collection
+
+2. **Section Files**
+   - Located in the "styles" directory
+   - File naming: `section-{mode-name}.json`
+   - Each file represents a color mode that can be applied to groups or sections
+
+3. **Button Style Files**
+   - Located in the "styles" directory
+   - File naming: `button-{variant-name}.json`
+   - Each file represents a button style variant that can be applied to buttons
+
+All files are packed into a single zip download for easy use in WordPress.
 
 ## Development
 
