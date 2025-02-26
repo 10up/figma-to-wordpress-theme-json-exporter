@@ -39,8 +39,20 @@ For the best results when using the WordPress Theme.json Exporter:
 2. Go to Menu > Plugins > WordPress Theme.json Export > Export to theme.json
 3. In the plugin UI, you can:
    - Choose to include typography presets (from text styles)
+   - Upload an existing theme.json file to merge variables into it
    - Preview the generated theme.json and additional style files
    - Download all files as a zip package
+
+### Using an Existing theme.json
+
+If you want to merge Figma variables into an existing theme:
+
+1. Prepare your existing theme.json file
+2. In the plugin UI, locate the "Base theme.json" section
+3. Click "Choose File" and select your theme.json file
+4. The file name will appear when successfully loaded
+5. Click "Export Variables" to merge your Figma variables into the theme
+6. All existing theme settings will be preserved, with new variables added under settings.custom
 
 ## Using the Generated Files in WordPress
 
@@ -83,5 +95,6 @@ If you encounter issues:
 1. **Variables not exporting** - Make sure your variables are published and visible in the Variables panel.
 2. **Text styles not appearing** - Check that your text styles are local to the document.
 3. **Missing typography properties** - Some properties may be omitted if they contain invalid values.
+4. **Base theme not loading** - Ensure your theme.json file is valid JSON and follows the WordPress theme.json schema.
 
 For more help, please refer to the README.md file or open an issue on GitHub. 

@@ -5,6 +5,7 @@ This Figma plugin converts Figma design tokens/variables into WordPress theme.js
 ## Features
 
 - Export Figma variables (colors, numbers) into WordPress theme.json format
+- Merge variables into an existing theme.json file
 - Properly structures data according to WordPress theme.json specification
 - Converts variable references to CSS custom properties using WordPress naming convention
 - Maintains variable hierarchies and references
@@ -22,10 +23,20 @@ This Figma plugin converts Figma design tokens/variables into WordPress theme.js
 
 1. **To export Figma variables to theme.json:**
    - Go to Menu > Plugins > WordPress Theme.json Export > Export to theme.json
+   - Optionally upload an existing theme.json file to merge variables into it
+   - Enable typography preset generation if needed
+   - Click "Export Variables" to generate the theme files
    - View the generated theme.json and additional style files in the plugin UI
    - Click "Download Theme Files" to save all files as a zip package
 
-2. **To import variables:**
+2. **To merge with an existing theme.json:**
+   - Click "Choose File" in the Base theme.json section
+   - Select your existing theme.json file
+   - The plugin will merge your Figma variables into the existing theme structure
+   - All existing theme.json settings and styles will be preserved
+   - New variables will be added under settings.custom
+
+3. **To import variables:**
    - Go to Menu > Plugins > WordPress Theme.json Export > Import Variables
    - Paste your JSON structure and provide a collection name
    - Click Import Variables
@@ -62,6 +73,15 @@ The plugin generates a valid WordPress theme.json file with all variables placed
   }
 }
 ```
+
+### Base Theme Merging
+
+When uploading an existing theme.json file:
+- The plugin preserves all existing theme settings and styles
+- New variables from Figma are merged into the `settings.custom` section
+- Existing custom variables with the same name are updated with new values
+- Other sections of the theme.json file remain untouched
+- Color modes and button styles are still exported as separate files
 
 ### Special Collection Handling
 
