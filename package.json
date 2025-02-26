@@ -1,12 +1,30 @@
 {
-  "name": "figma-theme-json-generator",
-  "version": "1.0.0",
-  "description": "Generate WordPress theme.json from Figma variables",
-  "main": "code.js",
-  "author": "",
-  "license": "",
-  "devDependencies": {
-    "@types/node": "*",
-    "typescript": "*"
-  }
+	"name": "figma-theme-json-generator",
+	"version": "1.0.0",
+	"description": "Generate WordPress theme.json from Figma variables",
+	"main": "code.js",
+	"scripts": {
+		"start": "10up-toolkit build --watch",
+		"build": "10up-toolkit build",
+		"format-js": "10up-toolkit format-js",
+		"lint-js": "10up-toolkit lint-js",
+		"lint-style": "10up-toolkit lint-style",
+		"test": "10up-toolkit test-unit-jest"
+	},
+	"author": "",
+	"license": "",
+	"devDependencies": {
+		"@figma/plugin-typings": "*",
+		"@types/node": "*",
+		"typescript": "*"
+	},
+	"dependencies": {
+		"@figma/plugin-typings": "^1.62.0",
+		"10up-toolkit": "^6.4.0"
+	},
+	"10up-toolkit": {
+		"build": {
+			"code": "src/code.ts"
+		}
+	}
 }
