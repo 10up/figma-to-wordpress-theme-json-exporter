@@ -14,12 +14,13 @@
 	"author": "",
 	"license": "",
 	"devDependencies": {
-		"@figma/plugin-typings": "*",
+		"@figma/plugin-typings": "^1.108.0",
 		"@types/node": "*",
 		"typescript": "*"
 	},
 	"dependencies": {
-		"@figma/plugin-typings": "^1.108.0",
+		"@figma/eslint-plugin-figma-plugins": "^0.16.1",
+		"@typescript-eslint/parser": "^6.21.0",
 		"10up-toolkit": "^6.4.0"
 	},
 	"10up-toolkit": {

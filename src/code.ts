@@ -22,9 +22,9 @@ interface ExportOptions {
 async function exportToJSON(options: ExportOptions = {}) {
 	// Clear the set of processed button variants at the start of a new export
 	processedButtonVariants.clear();
-	
+
 	const collections = await figma.variables.getLocalVariableCollectionsAsync();
-	
+
 	// Find the "Primitives" collection first
 	const primitivesCollection = collections.find(
 		collection => collection.name.toLowerCase() === "primitives"
@@ -66,15 +66,15 @@ async function exportToJSON(options: ExportOptions = {}) {
 		if (collection.name.toLowerCase() === "color" && collection.modes.length > 0) {
 			// Process the first mode normally and merge into the main theme
 			const firstModeData = await processCollectionModeData(collection, collection.modes[0]);
-			
+
 			// Process button styles specially if they exist
 			if (firstModeData && 'button' in firstModeData) {
 				processButtonStyles(firstModeData.button as Record<string, any>, allFiles);
 			}
-			
+
 			// Merge the first mode data into the appropriate location in the base theme
 			mergeCollectionData(theme.settings.custom, "color", firstModeData);
-			
+
 			// Output the first mode as a separate file too
 			const firstMode = collection.modes[0];
 			const firstModeNameSlug = firstMode.name.toLowerCase().replace(/\s+/g, '-');
@@ -105,7 +105,7 @@ async function exportToJSON(options: ExportOptions = {}) {
 			for (let i = 1; i < collection.modes.length; i++) {
 				const mode = collection.modes[i];
 				const modeData = await processCollectionModeData(collection, mode);
-				
+
 				// Process button styles for this mode if they exist
 				if (modeData && 'button' in modeData) {
 					processButtonStyles(modeData.button as Record<string, any>, allFiles);
@@ -134,7 +134,7 @@ async function exportToJSON(options: ExportOptions = {}) {
 						}
 					}
 				};
-				
+
 				// Add this section file to our output
 				allFiles.push(sectionFile);
 			}
@@ -142,10 +142,10 @@ async function exportToJSON(options: ExportOptions = {}) {
 			// For non-Color collections or Color collection with just one mode,
 			// process normally
 			const collectionData = await processCollectionData(collection);
-			
+
 			// Determine where to merge this collection's data based on its name
 			const collectionName = collection.name.toLowerCase();
-			
+
 			// Merge the collection data into the appropriate location in the base theme
 			mergeCollectionData(theme.settings.custom, collectionName, collectionData);
 		}
@@ -171,14 +171,14 @@ async function exportToJSON(options: ExportOptions = {}) {
 function formatFontPropertyPath(nameParts: string[], propertyType: string): string[] {
 	// Convert all parts to lowercase
 	const lowerParts = nameParts.map(part => part.toLowerCase());
-	
+
 	// Check if this path already contains the correct prefixes
 	const hasPropertyPrefix = lowerParts.some(part => part === propertyType);
 	const hasFontPrefix = lowerParts.some(part => part === 'font');
-	
+
 	// Create new array with the required prefixes if they don't exist
 	let formattedParts = [...lowerParts];
-	
+
 	if (!hasFontPrefix && !hasPropertyPrefix) {
 		// Neither prefix exists, add both
 		formattedParts = ['font', propertyType, ...formattedParts];
@@ -191,7 +191,7 @@ function formatFontPropertyPath(nameParts: string[], propertyType: string): stri
 		const propertyIndex = formattedParts.findIndex(part => part === propertyType);
 		formattedParts.splice(propertyIndex, 0, 'font');
 	}
-	
+
 	return formattedParts;
 }
 
@@ -200,40 +200,43 @@ async function getTypographyPresets(): Promise<any[]> {
 	// Get all text styles in the document - use async version
 	const textStyles = await figma.getLocalTextStylesAsync();
 	const typographyPresets = [];
-	
+
 	// Process each text style
 	for (const style of textStyles) {
 		// Remove the console.log for production
 		// console.log({style});
-		
+
 		// Create slug from style name
 		const styleName = style.name;
 		const slug = createSlugFromStyleName(styleName);
-		
+
 		// Create the preset object
 		const preset: Record<string, any> = {
 			slug,
 			name: formatStyleName(styleName),
 		};
-		
+
 		// Add selector for heading styles if applicable
 		if (/^h[1-6]$/i.test(slug) || slug.startsWith('heading-')) {
 			const headingMatch = styleName.match(/h([1-6])|heading[- ]([1-6])/i);
 			const headingLevel = headingMatch ? (headingMatch[1] || headingMatch[2]) : null;
-			
+
 			if (headingLevel) {
 				preset.selector = `h${headingLevel}`;
 			}
 		}
-		
+
 		// Add typography properties
-		const { 
-			fontFamily, fontSize, fontWeight, fontName, lineHeight, letterSpacing, 
+		const {
+			// @ts-ignore-next-line the types are wrong
+			fontFamily, fontSize, fontWeight, fontName, lineHeight, letterSpacing,
+			// @ts-ignore-next-line the types are wrong
 			textCase, textDecoration, textDecorationColor, textDecorationOffset,
-			textDecorationSkipInk, textDecorationStyle, textDecorationThickness, 
-			hangingPunctuation, leadingTrim, boundVariables 
+			// @ts-ignore-next-line the types are wrong
+			textDecorationSkipInk, textDecorationStyle, textDecorationThickness,
+			hangingPunctuation, leadingTrim, boundVariables
 		} = style;
-		
+
 		// Try to map to CSS variables when possible, using boundVariables if available
 		if (fontFamily) {
 			if (boundVariables?.fontFamily) {
@@ -254,7 +257,7 @@ async function getTypographyPresets(): Promise<any[]> {
 			const fontFamilyVar = await findFontFamilyVariable(fontName.family);
 			preset.fontFamily = fontFamilyVar || fontName.family;
 		}
-		
+
 		if (fontSize) {
 			if (boundVariables?.fontSize) {
 				// Get the variable directly from boundVariables
@@ -270,7 +273,7 @@ async function getTypographyPresets(): Promise<any[]> {
 				preset.fontSize = fontSizeVar || `${fontSize}px`;
 			}
 		}
-		
+
 		if (fontWeight) {
 			if (boundVariables?.fontWeight) {
 				// Get the variable directly from boundVariables
@@ -299,10 +302,10 @@ async function getTypographyPresets(): Promise<any[]> {
 				'extrabold': 800, 'extra bold': 800, 'ultra bold': 800,
 				'black': 900, 'heavy': 900
 			};
-			
+
 			// Convert style to lowercase for matching
 			const styleKey = fontName.style.toLowerCase();
-			
+
 			// First, check for direct numeric values like "700"
 			const numericWeight = parseInt(styleKey, 10);
 			if (!isNaN(numericWeight) && numericWeight >= 100 && numericWeight <= 900) {
@@ -317,7 +320,7 @@ async function getTypographyPresets(): Promise<any[]> {
 				}
 			}
 		}
-		
+
 		// Handle lineHeight with bound variable if available
 		if (lineHeight !== undefined) {
 			// Check for bound variable first
@@ -335,7 +338,7 @@ async function getTypographyPresets(): Promise<any[]> {
 					// Access unit and value safely
 					const unit = 'unit' in lineHeight ? (lineHeight as any).unit : null;
 					const value = 'value' in lineHeight ? (lineHeight as any).value : null;
-					
+
 					// For percent units, just output the numeric value as a string
 					if (unit === 'PERCENT' && value !== null) {
 						// Convert percentage to decimal (e.g., 120 -> 1.2)
@@ -366,7 +369,7 @@ async function getTypographyPresets(): Promise<any[]> {
 				}
 			}
 		}
-		
+
 		// Handle letterSpacing with bound variable if available
 		if (letterSpacing !== undefined) {
 			// Check for bound variable first
@@ -384,7 +387,7 @@ async function getTypographyPresets(): Promise<any[]> {
 					// Access unit and value safely
 					const unit = 'unit' in letterSpacing ? (letterSpacing as any).unit : null;
 					const value = 'value' in letterSpacing ? (letterSpacing as any).value : null;
-					
+
 					// For percent units with 0 value, output just 0 (numeric)
 					if (unit === 'PERCENT' && value === 0) {
 						preset.letterSpacing = 0;
@@ -412,7 +415,7 @@ async function getTypographyPresets(): Promise<any[]> {
 				}
 			}
 		}
-		
+
 		// Handle textCase
 		if (textCase !== undefined && textCase !== "ORIGINAL") {
 			const textCaseMap = {
@@ -422,8 +425,10 @@ async function getTypographyPresets(): Promise<any[]> {
 				"SMALL_CAPS": "small-caps",
 				"SMALL_CAPS_FORCED": "small-caps"
 			};
-			
+
+			// @ts-ignore-next-line the types are wrong
 			if (boundVariables?.textCase) {
+				// @ts-ignore-next-line the types are wrong
 				const variableId = boundVariables.textCase.id;
 				const variable = await figma.variables.getVariableByIdAsync(variableId);
 				const nameParts = variable.name.split("/").map(part => part.toLowerCase());
@@ -432,15 +437,17 @@ async function getTypographyPresets(): Promise<any[]> {
 				preset.textTransform = textCaseMap[textCase];
 			}
 		}
-		
+
 		// Handle textDecoration
 		if (textDecoration !== undefined && textDecoration !== "NONE") {
 			const decorationMap = {
 				"UNDERLINE": "underline",
 				"STRIKETHROUGH": "line-through"
 			};
-			
+
+			// @ts-ignore-next-line the types are wrong
 			if (boundVariables?.textDecoration) {
+				// @ts-ignore-next-line the types are wrong
 				const variableId = boundVariables.textDecoration.id;
 				const variable = await figma.variables.getVariableByIdAsync(variableId);
 				const nameParts = variable.name.split("/").map(part => part.toLowerCase());
@@ -449,10 +456,12 @@ async function getTypographyPresets(): Promise<any[]> {
 				preset.textDecoration = decorationMap[textDecoration];
 			}
 		}
-		
+
 		// Handle textDecorationColor
 		if (textDecorationColor) {
+			// @ts-ignore-next-line the types are wrong
 			if (boundVariables?.textDecorationColor) {
+				// @ts-ignore-next-line the types are wrong
 				const variableId = boundVariables.textDecorationColor.id;
 				const variable = await figma.variables.getVariableByIdAsync(variableId);
 				const nameParts = variable.name.split("/").map(part => part.toLowerCase());
@@ -467,7 +476,7 @@ async function getTypographyPresets(): Promise<any[]> {
 				preset.textDecorationColor = textDecorationColor;
 			}
 		}
-		
+
 		// Handle textDecorationStyle
 		if (textDecorationStyle !== undefined && textDecorationStyle !== "SOLID") {
 			const styleMap = {
@@ -475,8 +484,10 @@ async function getTypographyPresets(): Promise<any[]> {
 				"DOTTED": "dotted",
 				"WAVY": "wavy"
 			};
-			
+
+			// @ts-ignore-next-line the types are wrong
 			if (boundVariables?.textDecorationStyle) {
+				// @ts-ignore-next-line the types are wrong
 				const variableId = boundVariables.textDecorationStyle.id;
 				const variable = await figma.variables.getVariableByIdAsync(variableId);
 				const nameParts = variable.name.split("/").map(part => part.toLowerCase());
@@ -485,10 +496,12 @@ async function getTypographyPresets(): Promise<any[]> {
 				preset.textDecorationStyle = styleMap[textDecorationStyle];
 			}
 		}
-		
+
 		// Handle textDecorationThickness
 		if (textDecorationThickness !== undefined) {
+			// @ts-ignore-next-line the types are wrong
 			if (boundVariables?.textDecorationThickness) {
+				// @ts-ignore-next-line the types are wrong
 				const variableId = boundVariables.textDecorationThickness.id;
 				const variable = await figma.variables.getVariableByIdAsync(variableId);
 				const nameParts = variable.name.split("/").map(part => part.toLowerCase());
@@ -497,8 +510,8 @@ async function getTypographyPresets(): Promise<any[]> {
 				// Only set if we have a valid value
 				if (typeof textDecorationThickness === 'object') {
 					// If it's an object, only use if it has a value property
-					if (textDecorationThickness && 'value' in textDecorationThickness && 
-					    typeof textDecorationThickness.value === 'number') {
+					if (textDecorationThickness && 'value' in textDecorationThickness &&
+						typeof textDecorationThickness.value === 'number') {
 						preset.textDecorationThickness = `${textDecorationThickness.value}px`;
 					}
 					// Otherwise omit the property
@@ -509,10 +522,12 @@ async function getTypographyPresets(): Promise<any[]> {
 				// Do not set a default - omit if invalid
 			}
 		}
-		
+
 		// Handle textDecorationOffset
 		if (textDecorationOffset !== undefined) {
+			// @ts-ignore-next-line the types are wrong
 			if (boundVariables?.textDecorationOffset) {
+				// @ts-ignore-next-line the types are wrong
 				const variableId = boundVariables.textDecorationOffset.id;
 				const variable = await figma.variables.getVariableByIdAsync(variableId);
 				const nameParts = variable.name.split("/").map(part => part.toLowerCase());
@@ -521,8 +536,8 @@ async function getTypographyPresets(): Promise<any[]> {
 				// Only set if we have a valid value
 				if (typeof textDecorationOffset === 'object') {
 					// If it's an object, only use if it has a value property
-					if (textDecorationOffset && 'value' in textDecorationOffset && 
-					    typeof textDecorationOffset.value === 'number') {
+					if (textDecorationOffset && 'value' in textDecorationOffset &&
+						typeof textDecorationOffset.value === 'number') {
 						preset.textUnderlineOffset = `${textDecorationOffset.value}px`;
 					}
 					// Otherwise omit the property
@@ -533,15 +548,17 @@ async function getTypographyPresets(): Promise<any[]> {
 				// Do not set a default - omit if invalid
 			}
 		}
-		
+
 		// Handle textDecorationSkipInk
 		if (textDecorationSkipInk !== undefined && textDecorationSkipInk !== "AUTO") {
 			const skipInkMap = {
 				"NONE": "none",
 				"ALL": "all"
 			};
-			
+
+			// @ts-ignore-next-line the types are wrong
 			if (boundVariables?.textDecorationSkipInk) {
+				// @ts-ignore-next-line the types are wrong
 				const variableId = boundVariables.textDecorationSkipInk.id;
 				const variable = await figma.variables.getVariableByIdAsync(variableId);
 				const nameParts = variable.name.split("/").map(part => part.toLowerCase());
@@ -550,10 +567,12 @@ async function getTypographyPresets(): Promise<any[]> {
 				preset.textDecorationSkipInk = skipInkMap[textDecorationSkipInk];
 			}
 		}
-		
+
 		// Handle hangingPunctuation
 		if (hangingPunctuation !== undefined) {
+			// @ts-ignore-next-line the types are wrong
 			if (boundVariables?.hangingPunctuation) {
+				// @ts-ignore-next-line the types are wrong
 				const variableId = boundVariables.hangingPunctuation.id;
 				const variable = await figma.variables.getVariableByIdAsync(variableId);
 				const nameParts = variable.name.split("/").map(part => part.toLowerCase());
@@ -562,8 +581,9 @@ async function getTypographyPresets(): Promise<any[]> {
 				preset.hangingPunctuation = hangingPunctuation ? "first" : "none";
 			}
 		}
-		
+
 		// Handle leadingTrim
+		// @ts-ignore-next-line the types are wrong
 		if (leadingTrim !== undefined && leadingTrim !== "AUTO") {
 			const leadingTrimMap = {
 				"NONE": "none",
@@ -571,8 +591,10 @@ async function getTypographyPresets(): Promise<any[]> {
 				"CAP": "start",
 				"ALPHABETIC": "end"
 			};
-			
+
+			// @ts-ignore-next-line the types are wrong
 			if (boundVariables?.leadingTrim) {
+				// @ts-ignore-next-line the types are wrong
 				const variableId = boundVariables.leadingTrim.id;
 				const variable = await figma.variables.getVariableByIdAsync(variableId);
 				const nameParts = variable.name.split("/").map(part => part.toLowerCase());
@@ -581,10 +603,10 @@ async function getTypographyPresets(): Promise<any[]> {
 				preset.leadingTrim = leadingTrimMap[leadingTrim];
 			}
 		}
-		
+
 		typographyPresets.push(preset);
 	}
-	
+
 	return typographyPresets;
 }
 
@@ -592,23 +614,23 @@ async function getTypographyPresets(): Promise<any[]> {
 function createSlugFromStyleName(styleName: string): string {
 	// Split the style name by common separators to handle hierarchical paths
 	const parts = styleName.toLowerCase().split(/[/|\\-_]/);
-	
+
 	// Remove duplicate adjacent parts (e.g., "body/body-md" -> "body-md")
 	const uniqueParts = parts.filter((part, index) => {
 		if (index === 0) return true;
-		
+
 		// Check if this part is a duplicate of the previous part
 		// or if it's a size variant (e.g., md, lg, etc.)
 		const prevPart = parts[index - 1].trim();
 		const currentPart = part.trim();
-		
+
 		// If the previous part is contained in the current part (e.g., "body" in "body-md"),
 		// or if they're identical, skip the duplicate
-		return !(prevPart === currentPart || 
-			(currentPart.startsWith(prevPart) && 
-			 /^[a-z]+[0-9]*$/.test(currentPart.substring(prevPart.length).trim())));
+		return !(prevPart === currentPart ||
+			(currentPart.startsWith(prevPart) &&
+				/^[a-z]+[0-9]*$/.test(currentPart.substring(prevPart.length).trim())));
 	});
-	
+
 	// Create the slug from the cleaned parts
 	return uniqueParts
 		.join('-')
@@ -621,22 +643,22 @@ function createSlugFromStyleName(styleName: string): string {
 function formatStyleName(styleName: string): string {
 	// Split by common separators to handle hierarchical paths
 	const parts = styleName.split(/[/|\\-_]/);
-	
+
 	// Remove duplicate adjacent parts
 	const uniqueParts = parts.filter((part, index) => {
 		if (index === 0) return true;
-		
+
 		// Check if this part is a duplicate of the previous part
 		const prevPart = parts[index - 1].trim().toLowerCase();
 		const currentPart = part.trim().toLowerCase();
-		
+
 		// If the parts are identical, or the current part is just a variant of the previous part,
 		// skip the duplicate
-		return !(prevPart === currentPart || 
-			(currentPart.startsWith(prevPart) && 
-			 /^[a-z]+[0-9]*$/.test(currentPart.substring(prevPart.length).trim())));
+		return !(prevPart === currentPart ||
+			(currentPart.startsWith(prevPart) &&
+				/^[a-z]+[0-9]*$/.test(currentPart.substring(prevPart.length).trim())));
 	});
-	
+
 	// Format the remaining parts (capitalize first letter of each part)
 	return uniqueParts
 		.map(part => part.trim())
@@ -652,22 +674,23 @@ async function findFontFamilyVariable(fontFamily: string): Promise<string | null
 	if (wpPresetMatch) {
 		return `var(--wp--preset--font-family--${wpPresetMatch[1].toLowerCase()})`;
 	}
-	
+
 	// Try to find a custom font family variable in the document
 	try {
 		const collections = await figma.variables.getLocalVariableCollectionsAsync();
-		
+
 		for (const collection of collections) {
+			// @ts-ignore-next-line the types are wrong
 			const variables = await figma.variables.getVariablesByCollectionIdAsync(collection.id);
-			
+
 			for (const variable of variables) {
 				// Look for variables that might be font families
-				if (variable.name.toLowerCase().includes('font') && 
+				if (variable.name.toLowerCase().includes('font') &&
 					variable.name.toLowerCase().includes('family')) {
-					
+
 					const valuesByMode = await figma.variables.getVariableByIdAsync(variable.id)
 						.then(v => v.valuesByMode);
-					
+
 					// Check each mode's value
 					for (const [_, value] of Object.entries(valuesByMode)) {
 						if (value === fontFamily) {
@@ -682,7 +705,7 @@ async function findFontFamilyVariable(fontFamily: string): Promise<string | null
 	} catch (error) {
 		console.error("Error finding font family variable:", error);
 	}
-	
+
 	// If no match is found, check if it might be a custom WordPress preset
 	const cleanedName = fontFamily.toLowerCase().replace(/\s+/g, '-');
 	return `var(--wp--preset--font-family--${cleanedName})`;
@@ -692,17 +715,18 @@ async function findFontFamilyVariable(fontFamily: string): Promise<string | null
 async function findFontSizeVariable(fontSize: number): Promise<string | null> {
 	try {
 		const collections = await figma.variables.getLocalVariableCollectionsAsync();
-		
+
 		for (const collection of collections) {
+			// @ts-ignore-next-line the types are wrong
 			const variables = await figma.variables.getVariablesByCollectionIdAsync(collection.id);
-			
+
 			for (const variable of variables) {
 				// Look for variables that might be font sizes
-				if (variable.name.toLowerCase().includes('font') && 
+				if (variable.name.toLowerCase().includes('font') &&
 					variable.name.toLowerCase().includes('size')) {
-					
+
 					const variableInfo = await figma.variables.getVariableByIdAsync(variable.id);
-					
+
 					// Check each mode's value
 					for (const [_, value] of Object.entries(variableInfo.valuesByMode)) {
 						if (value === fontSize) {
@@ -717,7 +741,7 @@ async function findFontSizeVariable(fontSize: number): Promise<string | null> {
 	} catch (error) {
 		console.error("Error finding font size variable:", error);
 	}
-	
+
 	return null;
 }
 
@@ -735,20 +759,21 @@ async function findFontWeightVariable(fontWeight: number): Promise<string | null
 		800: 'extra-bold',
 		900: 'black'
 	};
-	
+
 	try {
 		const collections = await figma.variables.getLocalVariableCollectionsAsync();
-		
+
 		for (const collection of collections) {
+			// @ts-ignore-next-line the types are wrong
 			const variables = await figma.variables.getVariablesByCollectionIdAsync(collection.id);
-			
+
 			for (const variable of variables) {
 				// Look for variables that might be font weights
-				if (variable.name.toLowerCase().includes('font') && 
+				if (variable.name.toLowerCase().includes('font') &&
 					variable.name.toLowerCase().includes('weight')) {
-					
+
 					const variableInfo = await figma.variables.getVariableByIdAsync(variable.id);
-					
+
 					// Check each mode's value
 					for (const [_, value] of Object.entries(variableInfo.valuesByMode)) {
 						if (value === fontWeight) {
@@ -757,7 +782,7 @@ async function findFontWeightVariable(fontWeight: number): Promise<string | null
 							return buildCssVarReference(nameParts);
 						}
 					}
-					
+
 					// Check for name-based match (like "bold" for 700)
 					if (fontWeight in weightNames) {
 						const weightName = weightNames[fontWeight];
@@ -772,7 +797,7 @@ async function findFontWeightVariable(fontWeight: number): Promise<string | null
 	} catch (error) {
 		console.error("Error finding font weight variable:", error);
 	}
-	
+
 	return null;
 }
 
@@ -794,10 +819,10 @@ function deepMerge(target, source) {
 	if (typeof target !== 'object' || typeof source !== 'object') {
 		return source;
 	}
-	
+
 	// Create a new object to avoid modifying the originals
 	const result = { ...target };
-	
+
 	// Iterate through all properties of source
 	for (const key in source) {
 		// If property exists in both and both are objects, recursively merge
@@ -808,7 +833,7 @@ function deepMerge(target, source) {
 			result[key] = source[key];
 		}
 	}
-	
+
 	return result;
 }
 
@@ -829,10 +854,10 @@ function shouldAddPxUnit(nameParts: string[], value: any): boolean {
 	if (typeof value !== 'number' || value === 0) {
 		return false;
 	}
-	
+
 	// Categories that should have px units
 	const pxCategories = ['spacing', 'font', 'size', 'grid', 'radius', 'width', 'height'];
-	
+
 	// Check if any of the path parts match our px categories
 	return nameParts.some(part => pxCategories.includes(part.toLowerCase()));
 }
@@ -877,8 +902,8 @@ async function processCollectionModeData(collection: VariableCollection, mode: V
 				const referenceParts = currentVar.name.split("/").map(part => part.toLowerCase());
 				obj[leafName] = buildCssVarReference(referenceParts);
 			} else {
-				obj[leafName] = resolvedType === "COLOR" ? 
-					rgbToHex(value) : 
+				obj[leafName] = resolvedType === "COLOR" ?
+					rgbToHex(value) :
 					formatValueWithUnits(nameParts, value);
 			}
 		}
@@ -960,17 +985,17 @@ async function processCollectionData({ name, modes, variableIds }: VariableColle
 						const desktopReferenceParts = desktopVar.name.split("/").map(part => part.toLowerCase());
 						obj[leafName] = buildCssVarReference(desktopReferenceParts);
 					} else {
-						obj[leafName] = resolvedType === "COLOR" ? 
-							rgbToHex(desktopValue) : 
+						obj[leafName] = resolvedType === "COLOR" ?
+							rgbToHex(desktopValue) :
 							formatValueWithUnits(nameParts, desktopValue);
 					}
 				} else {
 					// Both are direct values
-					const maxValue = resolvedType === "COLOR" ? 
-						rgbToHex(desktopValue) : 
+					const maxValue = resolvedType === "COLOR" ?
+						rgbToHex(desktopValue) :
 						formatValueWithUnits(nameParts, desktopValue);
-					const minValue = resolvedType === "COLOR" ? 
-						rgbToHex(mobileValue) : 
+					const minValue = resolvedType === "COLOR" ?
+						rgbToHex(mobileValue) :
 						formatValueWithUnits(nameParts, mobileValue);
 
 					// If min and max are the same, use the value directly
@@ -991,7 +1016,7 @@ async function processCollectionData({ name, modes, variableIds }: VariableColle
 	} else {
 		// For regular collections, use the first mode
 		return await processCollectionModeData(
-			{ name, modes, variableIds } as VariableCollection, 
+			{ name, modes, variableIds } as VariableCollection,
 			modes[0]
 		);
 	}
@@ -1050,7 +1075,7 @@ function rgbToHex(color: any) {
 	if (typeof color === "string") {
 		return color;
 	}
-	
+
 	// Check if color is null or not an object
 	if (!color || typeof color !== 'object') {
 		return null; // Return null instead of default color so property can be omitted
@@ -1066,23 +1091,23 @@ function rgbToHex(color: any) {
 	const g = color.g;
 	const b = color.b;
 	const a = typeof color.a === 'number' ? color.a : 1;
-	
+
 	// Check for NaN values
 	if (isNaN(r) || isNaN(g) || isNaN(b)) {
 		return null; // Return null if any value is NaN
 	}
-	
+
 	if (a !== 1) {
 		// Ensure each RGB value is valid before converting
 		const rValue = Math.max(0, Math.min(1, r));
 		const gValue = Math.max(0, Math.min(1, g));
 		const bValue = Math.max(0, Math.min(1, b));
-		
+
 		return `rgba(${[rValue, gValue, bValue]
 			.map((n) => Math.round(n * 255))
 			.join(", ")}, ${a.toFixed(4)})`;
 	}
-	
+
 	const toHex = (value) => {
 		// Clamp value between 0-1
 		const clampedValue = Math.max(0, Math.min(1, value));
@@ -1177,7 +1202,7 @@ function processButtonStyles(buttonData: Record<string, any>, allFiles: any[]): 
 		// If there's no primary button style, we don't need special processing
 		return;
 	}
-	
+
 	// Instead of directly copying primary button properties, create references to CSS variables
 	const buttonStates = ['default', 'hover', 'disabled'];
 	buttonStates.forEach(state => {
@@ -1186,7 +1211,7 @@ function processButtonStyles(buttonData: Record<string, any>, allFiles: any[]): 
 			if (!buttonData[state]) {
 				buttonData[state] = {};
 			}
-			
+
 			// For each property in the primary button state, create a CSS variable reference
 			for (const prop in buttonData.primary[state]) {
 				// Reference the property using a CSS var that points to the primary button value
@@ -1194,17 +1219,17 @@ function processButtonStyles(buttonData: Record<string, any>, allFiles: any[]): 
 			}
 		}
 	});
-	
+
 	// Define known button variant names (case-insensitive)
 	// This ensures we only generate files for main button variants
 	const knownButtonVariants = ['secondary', 'tertiary', 'outline', 'ghost', 'link', 'destructive'];
-	
+
 	// Filter to only include direct child keys that match known button variant names
 	const buttonVariants = Object.keys(buttonData).filter(key => {
 		const keyLower = key.toLowerCase();
 		return (
 			// Skip primary as we don't want a file for it
-			keyLower !== 'primary' && 
+			keyLower !== 'primary' &&
 			// Match against our known button variant names
 			knownButtonVariants.includes(keyLower) &&
 			// Only include if it's a direct property (not inherited)
@@ -1215,37 +1240,37 @@ function processButtonStyles(buttonData: Record<string, any>, allFiles: any[]): 
 			!processedButtonVariants.has(keyLower)
 		);
 	});
-	
+
 	// Process each button variant as a separate file
 	for (const variantName of buttonVariants) {
 		const variantLower = variantName.toLowerCase();
-		
+
 		// Mark this variant as processed
 		processedButtonVariants.add(variantLower);
-		
+
 		// Create a separate style file for each button variant
 		const variantSlug = variantLower.replace(/\s+/g, '-');
-		
+
 		// Create flattened structure that references the variant's CSS custom properties
 		const flattenedButtonSettings = {};
-		
+
 		// Map states (default, hover, disabled) if they exist in the variant
 		const variantData = buttonData[variantName];
-		
+
 		// Process each button state
 		buttonStates.forEach(state => {
 			if (variantData[state]) {
 				flattenedButtonSettings[state] = {};
-				
+
 				// For each property in the state (background, text, border, etc.)
 				for (const prop in variantData[state]) {
 					// Reference the property using a CSS var that points to the variant's value
-					flattenedButtonSettings[state][prop] = 
+					flattenedButtonSettings[state][prop] =
 						`var(--wp--custom--color--button--${variantSlug}--${state}--${prop})`;
 				}
 			}
 		});
-		
+
 		const buttonStyleFile = {
 			fileName: `styles/button-${variantSlug}.json`,
 			body: {
@@ -1269,7 +1294,7 @@ function processButtonStyles(buttonData: Record<string, any>, allFiles: any[]): 
 				}
 			}
 		};
-		
+
 		allFiles.push(buttonStyleFile);
 	}
 }
