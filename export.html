@@ -15,6 +15,10 @@
 	  color: var(--figma-color-text);
 	  margin: 0;
 	  padding: var(--spacing);
+	  min-height: 300px;
+	  min-width: 300px;
+	  position: relative;
+	  overflow: hidden;
 	}
   
 	html,
@@ -26,7 +30,7 @@
 	  display: flex;
 	  flex-direction: column;
 	  gap: var(--spacing);
-	  max-height: 100%;
+	  max-height: calc(100% - 20px);
 	  overflow-y: auto;
 	}
   
@@ -178,6 +182,59 @@
 	.option-row input[type="checkbox"] {
 	  cursor: pointer;
 	}
+
+	/* Resize handle styles */
+	.resize-handle {
+	  position: absolute;
+	  bottom: 0;
+	  right: 0;
+	  width: 20px;
+	  height: 20px;
+	  cursor: nwse-resize;
+	  z-index: 100;
+	  opacity: 0.7;
+	  transition: opacity 0.2s ease;
+	}
+
+	.resize-handle:hover {
+	  opacity: 1;
+	}
+
+	.resize-handle:before,
+	.resize-handle:after {
+	  content: "";
+	  position: absolute;
+	  bottom: 3px;
+	  right: 3px;
+	  background-color: var(--figma-color-border);
+	}
+
+	.resize-handle:before {
+	  width: 2px;
+	  height: 12px;
+	  bottom: 3px;
+	  right: 8px;
+	  transform: rotate(45deg);
+	}
+
+	.resize-handle:after {
+	  width: 12px;
+	  height: 2px;
+	  bottom: 8px;
+	  right: 3px;
+	  transform: rotate(45deg);
+	}
+
+	.resize-overlay {
+	  position: fixed;
+	  top: 0;
+	  left: 0;
+	  width: 100%;
+	  height: 100%;
+	  z-index: 99;
+	  display: none;
+	  cursor: nwse-resize;
+	}
   </style>
   <main>
 	<div class="info-text">
@@ -209,10 +266,66 @@
 	  </div>
 	</div>
   </main>
+  <div class="resize-handle" id="resize-handle"></div>
+  <div class="resize-overlay" id="resize-overlay"></div>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
   <script>
 	let currentFiles = [];
+
+	// Setup resize functionality
+	const resizeHandle = document.getElementById('resize-handle');
+	const resizeOverlay = document.getElementById('resize-overlay');
+	let isResizing = false;
+	let initialWidth, initialHeight, initialX, initialY;
+
+	resizeHandle.addEventListener('mousedown', initResize);
+
+	function initResize(e) {
+	  e.preventDefault();
+	  
+	  // Record initial dimensions and mouse position
+	  initialWidth = window.innerWidth;
+	  initialHeight = window.innerHeight;
+	  initialX = e.clientX;
+	  initialY = e.clientY;
+	  
+	  // Show overlay to capture mouse movements
+	  resizeOverlay.style.display = 'block';
+	  isResizing = true;
+	  
+	  // Add event listeners for mouse movement and release
+	  window.addEventListener('mousemove', resizeWindow);
+	  window.addEventListener('mouseup', stopResize);
+	}
+
+	function resizeWindow(e) {
+	  if (!isResizing) return;
+	  
+	  // Calculate new dimensions
+	  const newWidth = initialWidth + (e.clientX - initialX);
+	  const newHeight = initialHeight + (e.clientY - initialY);
+	  
+	  // Apply minimum dimensions
+	  const width = Math.max(300, newWidth);
+	  const height = Math.max(300, newHeight);
+	  
+	  // Send resize message to plugin
+	  parent.postMessage({ 
+		pluginMessage: { 
+		  type: "RESIZE",
+		  width: width,
+		  height: height
+		} 
+	  }, "*");
+	}
+
+	function stopResize() {
+	  isResizing = false;
+	  resizeOverlay.style.display = 'none';
+	  window.removeEventListener('mousemove', resizeWindow);
+	  window.removeEventListener('mouseup', stopResize);
+	}
 
 	window.onmessage = ({ data: { pluginMessage } }) => {
 	  if (pluginMessage.type === "EXPORT_RESULT") {

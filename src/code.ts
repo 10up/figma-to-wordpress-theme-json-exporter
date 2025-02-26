@@ -7,62 +7,6 @@ interface ThemeCustomSettings {
 	};
 }
 
-// Fix TextStyle interface and API type issues
-declare namespace figma {
-	interface TextStyle {
-		// Add missing properties to TextStyle interface
-		fontFamily?: string;
-		fontSize?: number;
-		fontWeight?: number;
-		fontName?: {
-			family: string;
-			style: string;
-		};
-		lineHeight?: string | number | {
-			readonly unit: 'PIXELS' | 'PERCENT' | 'AUTO';
-			value?: number;
-		};
-		letterSpacing?: string | number | {
-			readonly unit: 'PIXELS' | 'PERCENT';
-			value?: number;
-		};
-		// Add text styling properties
-		textCase?: "ORIGINAL" | "UPPER" | "LOWER" | "TITLE" | "SMALL_CAPS" | "SMALL_CAPS_FORCED";
-		textDecoration?: "NONE" | "UNDERLINE" | "STRIKETHROUGH";
-		textDecorationColor?: string | { r: number; g: number; b: number; a?: number };
-		textDecorationOffset?: number;
-		textDecorationSkipInk?: "AUTO" | "NONE" | "ALL";
-		textDecorationStyle?: "SOLID" | "DASHED" | "DOTTED" | "WAVY";
-		textDecorationThickness?: number;
-		hangingPunctuation?: boolean;
-		leadingTrim?: "AUTO" | "NONE" | "BOTH" | "CAP" | "ALPHABETIC";
-		// Add boundVariables property
-		boundVariables?: {
-			fontFamily?: { id: string; type: string; };
-			fontSize?: { id: string; type: string; };
-			fontWeight?: { id: string; type: string; };
-			lineHeight?: { id: string; type: string; };
-			letterSpacing?: { id: string; type: string; };
-			textCase?: { id: string; type: string; };
-			textDecoration?: { id: string; type: string; };
-			textDecorationColor?: { id: string; type: string; };
-			textDecorationOffset?: { id: string; type: string; };
-			textDecorationSkipInk?: { id: string; type: string; };
-			textDecorationStyle?: { id: string; type: string; };
-			textDecorationThickness?: { id: string; type: string; };
-			hangingPunctuation?: { id: string; type: string; };
-			leadingTrim?: { id: string; type: string; };
-			[key: string]: { id: string; type: string; } | undefined;
-		};
-	}
-
-	interface VariablesAPI {
-		// Add missing API method 
-		getVariablesByCollectionIdAsync(collectionId: string): Promise<Variable[]>;
-		getLocalTextStylesAsync(): Promise<TextStyle[]>;
-	}
-}
-
 console.clear();
 
 // Array to track which button variants we've already processed
@@ -1059,6 +1003,14 @@ figma.ui.onmessage = async (e) => {
 		// Extract options from the message
 		const options: ExportOptions = e.options || {};
 		await exportToJSON(options);
+	} else if (e.type === "RESIZE") {
+		// Handle resize message from the UI
+		if (e.width && e.height) {
+			figma.ui.resize(
+				Math.max(300, Math.round(e.width)),
+				Math.max(300, Math.round(e.height))
+			);
+		}
 	}
 };
 
