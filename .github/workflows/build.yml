@@ -34,6 +34,7 @@ jobs:
     - name: Create plugin bundle
       run: |
         mkdir plugin-bundle
+        mkdir plugin-bundle/dist
         cp manifest.json plugin-bundle/
         cp -r dist/* plugin-bundle/dist/
         cp export.html plugin-bundle/
