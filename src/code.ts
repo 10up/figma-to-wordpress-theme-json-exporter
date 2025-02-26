@@ -1,6 +1,13 @@
 console.clear();
 
+// Array to track which button variants we've already processed
+// This needs to be outside of the function to persist between calls
+const processedButtonVariants = new Set<string>();
+
 async function exportToJSON() {
+	// Clear the set of processed button variants at the start of a new export
+	processedButtonVariants.clear();
+	
 	const collections = await figma.variables.getLocalVariableCollectionsAsync();
 	
 	// Find the "Primitives" collection first
@@ -45,6 +52,11 @@ async function exportToJSON() {
 			// Process the first mode normally and merge into the main theme
 			const firstModeData = await processCollectionModeData(collection, collection.modes[0]);
 			
+			// Process button styles specially if they exist
+			if (firstModeData && 'button' in firstModeData) {
+				processButtonStyles(firstModeData.button as Record<string, any>, allFiles);
+			}
+			
 			// Merge the first mode data into the appropriate location in the base theme
 			mergeCollectionData(themeFile.body.settings.custom, "color", firstModeData);
 			
@@ -78,6 +90,11 @@ async function exportToJSON() {
 			for (let i = 1; i < collection.modes.length; i++) {
 				const mode = collection.modes[i];
 				const modeData = await processCollectionModeData(collection, mode);
+				
+				// Process button styles for this mode if they exist
+				if (modeData && 'button' in modeData) {
+					processButtonStyles(modeData.button as Record<string, any>, allFiles);
+				}
 				
 				// Create separate file for this color mode
 				const modeNameSlug = mode.name.toLowerCase().replace(/\s+/g, '-');
@@ -477,4 +494,113 @@ function hslToRgbFloat(h, s, l) {
 	const b = hue2rgb(p, q, (h - 1 / 3) % 1);
 
 	return { r, g, b };
+}
+
+// Helper function to process button styles in the color data
+function processButtonStyles(buttonData: Record<string, any>, allFiles: any[]): void {
+	// First, check if we have a "primary" button style
+	if (!buttonData.primary) {
+		// If there's no primary button style, we don't need special processing
+		return;
+	}
+	
+	// Instead of directly copying primary button properties, create references to CSS variables
+	const buttonStates = ['default', 'hover', 'disabled'];
+	buttonStates.forEach(state => {
+		if (buttonData.primary[state]) {
+			// Create the state object at root level if it doesn't exist
+			if (!buttonData[state]) {
+				buttonData[state] = {};
+			}
+			
+			// For each property in the primary button state, create a CSS variable reference
+			for (const prop in buttonData.primary[state]) {
+				// Reference the property using a CSS var that points to the primary button value
+				buttonData[state][prop] = `var(--wp--custom--color--button--primary--${state}--${prop})`;
+			}
+		}
+	});
+	
+	// Define known button variant names (case-insensitive)
+	// This ensures we only generate files for main button variants
+	const knownButtonVariants = ['secondary', 'tertiary', 'outline', 'ghost', 'link', 'destructive'];
+	
+	// Filter to only include direct child keys that match known button variant names
+	const buttonVariants = Object.keys(buttonData).filter(key => {
+		const keyLower = key.toLowerCase();
+		return (
+			// Skip primary as we don't want a file for it
+			keyLower !== 'primary' && 
+			// Match against our known button variant names
+			knownButtonVariants.includes(keyLower) &&
+			// Only include if it's a direct property (not inherited)
+			Object.prototype.hasOwnProperty.call(buttonData, key) &&
+			// Make sure it's an object (not a primitive value)
+			typeof buttonData[key] === 'object' &&
+			// Skip variants we've already processed to avoid duplicates
+			!processedButtonVariants.has(keyLower)
+		);
+	});
+	
+	// Process each button variant as a separate file
+	for (const variantName of buttonVariants) {
+		const variantLower = variantName.toLowerCase();
+		
+		// Mark this variant as processed
+		processedButtonVariants.add(variantLower);
+		
+		// Create a separate style file for each button variant
+		const variantSlug = variantLower.replace(/\s+/g, '-');
+		
+		// Create flattened structure that references the variant's CSS custom properties
+		const flattenedButtonSettings = {};
+		
+		// Map states (default, hover, disabled) if they exist in the variant
+		const variantData = buttonData[variantName];
+		
+		// Process each button state
+		buttonStates.forEach(state => {
+			if (variantData[state]) {
+				flattenedButtonSettings[state] = {};
+				
+				// For each property in the state (background, text, border, etc.)
+				for (const prop in variantData[state]) {
+					// Reference the property using a CSS var that points to the variant's value
+					flattenedButtonSettings[state][prop] = 
+						`var(--wp--custom--color--button--${variantSlug}--${state}--${prop})`;
+				}
+			}
+		});
+		
+		const buttonStyleFile = {
+			fileName: `styles/button-${variantSlug}.json`,
+			body: {
+				"$schema": "https://schemas.wp.org/trunk/theme.json",
+				"version": 3,
+				"title": capitalizeFirstLetter(variantName),
+				"slug": `button-${variantSlug}`,
+				"blockTypes": ["core/button"],
+				"settings": {
+					"custom": {
+						"color": {
+							"button": flattenedButtonSettings
+						}
+					}
+				},
+				"styles": {
+					"color": {
+						"background": buttonData[variantName].default?.background || 
+							`var(--wp--custom--color--button--${variantSlug}--default--background)`
+					}
+				}
+			}
+		};
+		
+		allFiles.push(buttonStyleFile);
+	}
+}
+
+// Helper function to capitalize the first letter of a string
+function capitalizeFirstLetter(str) {
+	return str.charAt(0).toUpperCase() + str.slice(1);
 }
