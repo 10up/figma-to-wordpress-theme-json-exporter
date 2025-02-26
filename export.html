@@ -153,6 +153,31 @@
 	  padding: var(--spacing);
 	  font-style: italic;
 	}
+	
+	.options {
+	  display: flex;
+	  flex-direction: column;
+	  gap: calc(var(--spacing) / 2);
+	  margin-bottom: var(--spacing);
+	  background-color: var(--figma-color-bg-secondary);
+	  padding: var(--spacing);
+	  border-radius: 4px;
+	}
+	
+	.option-row {
+	  display: flex;
+	  align-items: center;
+	  gap: calc(var(--spacing) / 2);
+	}
+	
+	.option-row label {
+	  font-size: 0.9rem;
+	  cursor: pointer;
+	}
+	
+	.option-row input[type="checkbox"] {
+	  cursor: pointer;
+	}
   </style>
   <main>
 	<div class="info-text">
@@ -166,6 +191,14 @@
 		</ul>
 	  </div>
 	</div>
+	
+	<div class="options">
+	  <div class="option-row">
+		<input type="checkbox" id="generate-typography" />
+		<label for="generate-typography">Generate typography presets from text styles</label>
+	  </div>
+	</div>
+	
 	<div class="button-row">
 	  <button id="export" type="button">Export Variables</button>
 	  <button id="download" type="button">Download theme.json</button>
@@ -270,7 +303,18 @@
 	}
 
 	document.getElementById("export").addEventListener("click", () => {
-	  parent.postMessage({ pluginMessage: { type: "EXPORT" } }, "*");
+	  // Get the state of the typography checkbox
+	  const generateTypography = document.getElementById("generate-typography").checked;
+	  
+	  // Pass the options to the plugin
+	  parent.postMessage({ 
+		pluginMessage: { 
+		  type: "EXPORT",
+		  options: {
+			generateTypography
+		  }
+		} 
+	  }, "*");
 	});
 
 	document.getElementById("download").addEventListener("click", () => {

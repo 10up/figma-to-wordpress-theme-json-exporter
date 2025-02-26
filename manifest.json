@@ -9,5 +9,6 @@
     { "command": "export", "name": "Export to theme.json" }
   ],
   "ui": { "export": "export.html" },
-  "documentAccess": "dynamic-page"
+  "documentAccess": "dynamic-page",
+  "description": "Export Figma variables and text styles to WordPress theme.json format. Supports typography presets, fluid variables, line height decimal conversion, and proper text decoration handling."
 }

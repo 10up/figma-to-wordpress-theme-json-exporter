@@ -1,10 +1,80 @@
+// Create an interface for the custom settings structure
+interface ThemeCustomSettings {
+	[key: string]: any;
+	typography?: {
+		presets?: any[];
+		[key: string]: any;
+	};
+}
+
+// Fix TextStyle interface and API type issues
+declare namespace figma {
+	interface TextStyle {
+		// Add missing properties to TextStyle interface
+		fontFamily?: string;
+		fontSize?: number;
+		fontWeight?: number;
+		fontName?: {
+			family: string;
+			style: string;
+		};
+		lineHeight?: string | number | {
+			readonly unit: 'PIXELS' | 'PERCENT' | 'AUTO';
+			value?: number;
+		};
+		letterSpacing?: string | number | {
+			readonly unit: 'PIXELS' | 'PERCENT';
+			value?: number;
+		};
+		// Add text styling properties
+		textCase?: "ORIGINAL" | "UPPER" | "LOWER" | "TITLE" | "SMALL_CAPS" | "SMALL_CAPS_FORCED";
+		textDecoration?: "NONE" | "UNDERLINE" | "STRIKETHROUGH";
+		textDecorationColor?: string | { r: number; g: number; b: number; a?: number };
+		textDecorationOffset?: number;
+		textDecorationSkipInk?: "AUTO" | "NONE" | "ALL";
+		textDecorationStyle?: "SOLID" | "DASHED" | "DOTTED" | "WAVY";
+		textDecorationThickness?: number;
+		hangingPunctuation?: boolean;
+		leadingTrim?: "AUTO" | "NONE" | "BOTH" | "CAP" | "ALPHABETIC";
+		// Add boundVariables property
+		boundVariables?: {
+			fontFamily?: { id: string; type: string; };
+			fontSize?: { id: string; type: string; };
+			fontWeight?: { id: string; type: string; };
+			lineHeight?: { id: string; type: string; };
+			letterSpacing?: { id: string; type: string; };
+			textCase?: { id: string; type: string; };
+			textDecoration?: { id: string; type: string; };
+			textDecorationColor?: { id: string; type: string; };
+			textDecorationOffset?: { id: string; type: string; };
+			textDecorationSkipInk?: { id: string; type: string; };
+			textDecorationStyle?: { id: string; type: string; };
+			textDecorationThickness?: { id: string; type: string; };
+			hangingPunctuation?: { id: string; type: string; };
+			leadingTrim?: { id: string; type: string; };
+			[key: string]: { id: string; type: string; } | undefined;
+		};
+	}
+
+	interface VariablesAPI {
+		// Add missing API method 
+		getVariablesByCollectionIdAsync(collectionId: string): Promise<Variable[]>;
+		getLocalTextStylesAsync(): Promise<TextStyle[]>;
+	}
+}
+
 console.clear();
 
 // Array to track which button variants we've already processed
 // This needs to be outside of the function to persist between calls
 const processedButtonVariants = new Set<string>();
 
-async function exportToJSON() {
+// Interface for export options
+interface ExportOptions {
+	generateTypography?: boolean;
+}
+
+async function exportToJSON(options: ExportOptions = {}) {
 	// Clear the set of processed button variants at the start of a new export
 	processedButtonVariants.clear();
 	
@@ -26,16 +96,30 @@ async function exportToJSON() {
 	// Process the primitives collection first to create our base theme
 	const baseThemeData = await processCollectionData(primitivesCollection);
 
-	// Create the base theme file
+	// Create the base theme file with properly typed custom settings
 	const themeFile = {
 		fileName: "theme.json",
 		body: {
 			version: 3,
 			settings: {
-				custom: baseThemeData
+				custom: baseThemeData as ThemeCustomSettings
 			}
 		}
 	};
+
+	// If typography presets are enabled, add them to the theme.json
+	if (options.generateTypography) {
+		// Get typography presets from text styles
+		const typographyPresets = await getTypographyPresets();
+		
+		// Ensure the typography object exists in the custom settings
+		if (!themeFile.body.settings.custom.typography) {
+			themeFile.body.settings.custom.typography = {};
+		}
+		
+		// Add presets to theme.json
+		themeFile.body.settings.custom.typography.presets = typographyPresets;
+	}
 
 	// Array to store all files we need to output
 	const allFiles = [themeFile];
@@ -137,6 +221,615 @@ async function exportToJSON() {
 	}
 
 	figma.ui.postMessage({ type: "EXPORT_RESULT", files: allFiles });
+}
+
+// Helper function to ensure font property variables have the proper WordPress path structure
+function formatFontPropertyPath(nameParts: string[], propertyType: string): string[] {
+	// Convert all parts to lowercase
+	const lowerParts = nameParts.map(part => part.toLowerCase());
+	
+	// Check if this path already contains the correct prefixes
+	const hasPropertyPrefix = lowerParts.some(part => part === propertyType);
+	const hasFontPrefix = lowerParts.some(part => part === 'font');
+	
+	// Create new array with the required prefixes if they don't exist
+	let formattedParts = [...lowerParts];
+	
+	if (!hasFontPrefix && !hasPropertyPrefix) {
+		// Neither prefix exists, add both
+		formattedParts = ['font', propertyType, ...formattedParts];
+	} else if (hasFontPrefix && !hasPropertyPrefix) {
+		// Only font prefix exists, add property type after it
+		const fontIndex = formattedParts.findIndex(part => part === 'font');
+		formattedParts.splice(fontIndex + 1, 0, propertyType);
+	} else if (!hasFontPrefix && hasPropertyPrefix) {
+		// Only property prefix exists, add font prefix before it
+		const propertyIndex = formattedParts.findIndex(part => part === propertyType);
+		formattedParts.splice(propertyIndex, 0, 'font');
+	}
+	
+	return formattedParts;
+}
+
+// Function to retrieve and process text styles from Figma
+async function getTypographyPresets(): Promise<any[]> {
+	// Get all text styles in the document - use async version
+	const textStyles = await figma.getLocalTextStylesAsync();
+	const typographyPresets = [];
+	
+	// Process each text style
+	for (const style of textStyles) {
+		// Remove the console.log for production
+		// console.log({style});
+		
+		// Create slug from style name
+		const styleName = style.name;
+		const slug = createSlugFromStyleName(styleName);
+		
+		// Create the preset object
+		const preset: Record<string, any> = {
+			slug,
+			name: formatStyleName(styleName),
+		};
+		
+		// Add selector for heading styles if applicable
+		if (/^h[1-6]$/i.test(slug) || slug.startsWith('heading-')) {
+			const headingMatch = styleName.match(/h([1-6])|heading[- ]([1-6])/i);
+			const headingLevel = headingMatch ? (headingMatch[1] || headingMatch[2]) : null;
+			
+			if (headingLevel) {
+				preset.selector = `h${headingLevel}`;
+			}
+		}
+		
+		// Add typography properties
+		const { 
+			fontFamily, fontSize, fontWeight, fontName, lineHeight, letterSpacing, 
+			textCase, textDecoration, textDecorationColor, textDecorationOffset,
+			textDecorationSkipInk, textDecorationStyle, textDecorationThickness, 
+			hangingPunctuation, leadingTrim, boundVariables 
+		} = style;
+		
+		// Try to map to CSS variables when possible, using boundVariables if available
+		if (fontFamily) {
+			if (boundVariables?.fontFamily) {
+				// Get the variable directly from boundVariables
+				const variableId = boundVariables.fontFamily.id;
+				const variable = await figma.variables.getVariableByIdAsync(variableId);
+				const nameParts = variable.name.split("/").map(part => part.toLowerCase());
+				// Format path for font-family to ensure it has the right structure
+				const formattedParts = formatFontPropertyPath(nameParts, 'family');
+				preset.fontFamily = buildCssVarReference(formattedParts);
+			} else {
+				// Fallback to the old method if no bound variable
+				const fontFamilyVar = await findFontFamilyVariable(fontFamily);
+				preset.fontFamily = fontFamilyVar || fontFamily;
+			}
+		} else if (fontName?.family) {
+			// Use fontName.family as a fallback if fontFamily is not available
+			const fontFamilyVar = await findFontFamilyVariable(fontName.family);
+			preset.fontFamily = fontFamilyVar || fontName.family;
+		}
+		
+		if (fontSize) {
+			if (boundVariables?.fontSize) {
+				// Get the variable directly from boundVariables
+				const variableId = boundVariables.fontSize.id;
+				const variable = await figma.variables.getVariableByIdAsync(variableId);
+				const nameParts = variable.name.split("/").map(part => part.toLowerCase());
+				// Format path for font-size to ensure it has the right structure
+				const formattedParts = formatFontPropertyPath(nameParts, 'size');
+				preset.fontSize = buildCssVarReference(formattedParts);
+			} else {
+				// Fallback to the old method if no bound variable
+				const fontSizeVar = await findFontSizeVariable(fontSize);
+				preset.fontSize = fontSizeVar || `${fontSize}px`;
+			}
+		}
+		
+		if (fontWeight) {
+			if (boundVariables?.fontWeight) {
+				// Get the variable directly from boundVariables
+				const variableId = boundVariables.fontWeight.id;
+				const variable = await figma.variables.getVariableByIdAsync(variableId);
+				const nameParts = variable.name.split("/").map(part => part.toLowerCase());
+				// Format path for font-weight to ensure it has the right structure
+				const formattedParts = formatFontPropertyPath(nameParts, 'weight');
+				preset.fontWeight = buildCssVarReference(formattedParts);
+			} else {
+				// Fallback to the old method if no bound variable
+				const fontWeightVar = await findFontWeightVariable(fontWeight);
+				preset.fontWeight = fontWeightVar || fontWeight;
+			}
+		} else if (fontName?.style) {
+			// Extract font weight from fontName.style if available
+			// Common mappings for font weight names to numeric values
+			const fontWeightMap = {
+				'thin': 100,
+				'extralight': 200, 'extra light': 200, 'ultra light': 200,
+				'light': 300,
+				'normal': 400, 'regular': 400,
+				'medium': 500,
+				'semibold': 600, 'semi bold': 600, 'demi bold': 600,
+				'bold': 700,
+				'extrabold': 800, 'extra bold': 800, 'ultra bold': 800,
+				'black': 900, 'heavy': 900
+			};
+			
+			// Convert style to lowercase for matching
+			const styleKey = fontName.style.toLowerCase();
+			
+			// First, check for direct numeric values like "700"
+			const numericWeight = parseInt(styleKey, 10);
+			if (!isNaN(numericWeight) && numericWeight >= 100 && numericWeight <= 900) {
+				preset.fontWeight = numericWeight;
+			} else {
+				// Then check for weight name mapping
+				for (const [name, value] of Object.entries(fontWeightMap)) {
+					if (styleKey.includes(name)) {
+						preset.fontWeight = value;
+						break;
+					}
+				}
+			}
+		}
+		
+		// Handle lineHeight with bound variable if available
+		if (lineHeight !== undefined) {
+			// Check for bound variable first
+			if (boundVariables?.lineHeight) {
+				const variableId = boundVariables.lineHeight.id;
+				const variable = await figma.variables.getVariableByIdAsync(variableId);
+				const nameParts = variable.name.split("/").map(part => part.toLowerCase());
+				// Format path for line-height to ensure it has the right structure
+				const formattedParts = formatFontPropertyPath(nameParts, 'line-height');
+				preset.lineHeight = buildCssVarReference(formattedParts);
+			} else {
+				// Fall back to the existing formatting logic if no bound variable
+				// Handle complex object format
+				if (typeof lineHeight === 'object' && lineHeight !== null) {
+					// Access unit and value safely
+					const unit = 'unit' in lineHeight ? (lineHeight as any).unit : null;
+					const value = 'value' in lineHeight ? (lineHeight as any).value : null;
+					
+					// For percent units, just output the numeric value as a string
+					if (unit === 'PERCENT' && value !== null) {
+						// Convert percentage to decimal (e.g., 120 -> 1.2)
+						preset.lineHeight = roundToMax3Decimals(value / 100);
+					} else if (unit === 'PIXELS' && value !== null) {
+						// Convert pixel values to unitless relative to font size
+						preset.lineHeight = roundToMax3Decimals(value / fontSize);
+					} else if (value !== null) {
+						// For other units, keep the raw value
+						preset.lineHeight = roundToMax3Decimals(value);
+					} else {
+						// Fallback to 'normal' if we can't determine a proper value
+						preset.lineHeight = 'normal';
+					}
+				} else {
+					// Convert to number or keep as is if it's already unitless
+					const lineHeightStr = lineHeight.toString();
+					if (lineHeightStr.endsWith('px')) {
+						const pixelValue = parseFloat(lineHeightStr);
+						preset.lineHeight = roundToMax3Decimals(pixelValue / fontSize);
+					} else if (lineHeightStr.endsWith('%')) {
+						// Convert percentage string to decimal
+						const percentValue = parseFloat(lineHeightStr.replace('%', ''));
+						preset.lineHeight = roundToMax3Decimals(percentValue / 100);
+					} else {
+						preset.lineHeight = roundToMax3Decimals(parseFloat(lineHeightStr));
+					}
+				}
+			}
+		}
+		
+		// Handle letterSpacing with bound variable if available
+		if (letterSpacing !== undefined) {
+			// Check for bound variable first
+			if (boundVariables?.letterSpacing) {
+				const variableId = boundVariables.letterSpacing.id;
+				const variable = await figma.variables.getVariableByIdAsync(variableId);
+				const nameParts = variable.name.split("/").map(part => part.toLowerCase());
+				// Format path for letter-spacing to ensure it has the right structure
+				const formattedParts = formatFontPropertyPath(nameParts, 'letter-spacing');
+				preset.letterSpacing = buildCssVarReference(formattedParts);
+			} else {
+				// Fall back to the existing formatting logic if no bound variable
+				// Handle complex object format
+				if (typeof letterSpacing === 'object' && letterSpacing !== null) {
+					// Access unit and value safely
+					const unit = 'unit' in letterSpacing ? (letterSpacing as any).unit : null;
+					const value = 'value' in letterSpacing ? (letterSpacing as any).value : null;
+					
+					// For percent units with 0 value, output just 0 (numeric)
+					if (unit === 'PERCENT' && value === 0) {
+						preset.letterSpacing = 0;
+					} else if (unit === 'PIXELS' && value !== null) {
+						// Convert pixel values to em units relative to font size
+						const emValue = value / fontSize;
+						preset.letterSpacing = `${roundToMax3Decimals(emValue)}em`;
+					} else if (value !== null) {
+						// For other units, keep the raw value
+						preset.letterSpacing = roundToMax3Decimals(value);
+					} else {
+						// Fallback to 0 if we can't determine a proper value
+						preset.letterSpacing = 0;
+					}
+				} else {
+					// Convert to em units for WordPress
+					const letterSpacingStr = letterSpacing.toString();
+					if (letterSpacingStr.endsWith('px')) {
+						const pixelValue = parseFloat(letterSpacingStr);
+						const emValue = pixelValue / fontSize;
+						preset.letterSpacing = `${roundToMax3Decimals(emValue)}em`;
+					} else {
+						preset.letterSpacing = roundToMax3Decimals(parseFloat(letterSpacingStr));
+					}
+				}
+			}
+		}
+		
+		// Handle textCase
+		if (textCase !== undefined && textCase !== "ORIGINAL") {
+			const textCaseMap = {
+				"UPPER": "uppercase",
+				"LOWER": "lowercase",
+				"TITLE": "capitalize",
+				"SMALL_CAPS": "small-caps",
+				"SMALL_CAPS_FORCED": "small-caps"
+			};
+			
+			if (boundVariables?.textCase) {
+				const variableId = boundVariables.textCase.id;
+				const variable = await figma.variables.getVariableByIdAsync(variableId);
+				const nameParts = variable.name.split("/").map(part => part.toLowerCase());
+				preset.textTransform = buildCssVarReference(nameParts);
+			} else if (textCase in textCaseMap) {
+				preset.textTransform = textCaseMap[textCase];
+			}
+		}
+		
+		// Handle textDecoration
+		if (textDecoration !== undefined && textDecoration !== "NONE") {
+			const decorationMap = {
+				"UNDERLINE": "underline",
+				"STRIKETHROUGH": "line-through"
+			};
+			
+			if (boundVariables?.textDecoration) {
+				const variableId = boundVariables.textDecoration.id;
+				const variable = await figma.variables.getVariableByIdAsync(variableId);
+				const nameParts = variable.name.split("/").map(part => part.toLowerCase());
+				preset.textDecoration = buildCssVarReference(nameParts);
+			} else if (textDecoration in decorationMap) {
+				preset.textDecoration = decorationMap[textDecoration];
+			}
+		}
+		
+		// Handle textDecorationColor
+		if (textDecorationColor) {
+			if (boundVariables?.textDecorationColor) {
+				const variableId = boundVariables.textDecorationColor.id;
+				const variable = await figma.variables.getVariableByIdAsync(variableId);
+				const nameParts = variable.name.split("/").map(part => part.toLowerCase());
+				preset.textDecorationColor = buildCssVarReference(nameParts);
+			} else if (typeof textDecorationColor === 'object') {
+				// Convert color object to hex or rgba and only set if valid
+				const colorValue = rgbToHex(textDecorationColor);
+				if (colorValue !== null) {
+					preset.textDecorationColor = colorValue;
+				}
+			} else if (typeof textDecorationColor === 'string') {
+				preset.textDecorationColor = textDecorationColor;
+			}
+		}
+		
+		// Handle textDecorationStyle
+		if (textDecorationStyle !== undefined && textDecorationStyle !== "SOLID") {
+			const styleMap = {
+				"DASHED": "dashed",
+				"DOTTED": "dotted",
+				"WAVY": "wavy"
+			};
+			
+			if (boundVariables?.textDecorationStyle) {
+				const variableId = boundVariables.textDecorationStyle.id;
+				const variable = await figma.variables.getVariableByIdAsync(variableId);
+				const nameParts = variable.name.split("/").map(part => part.toLowerCase());
+				preset.textDecorationStyle = buildCssVarReference(nameParts);
+			} else if (textDecorationStyle in styleMap) {
+				preset.textDecorationStyle = styleMap[textDecorationStyle];
+			}
+		}
+		
+		// Handle textDecorationThickness
+		if (textDecorationThickness !== undefined) {
+			if (boundVariables?.textDecorationThickness) {
+				const variableId = boundVariables.textDecorationThickness.id;
+				const variable = await figma.variables.getVariableByIdAsync(variableId);
+				const nameParts = variable.name.split("/").map(part => part.toLowerCase());
+				preset.textDecorationThickness = buildCssVarReference(nameParts);
+			} else {
+				// Only set if we have a valid value
+				if (typeof textDecorationThickness === 'object') {
+					// If it's an object, only use if it has a value property
+					if (textDecorationThickness && 'value' in textDecorationThickness && 
+					    typeof textDecorationThickness.value === 'number') {
+						preset.textDecorationThickness = `${textDecorationThickness.value}px`;
+					}
+					// Otherwise omit the property
+				} else if (typeof textDecorationThickness === 'number') {
+					// Convert to px units for WordPress
+					preset.textDecorationThickness = `${textDecorationThickness}px`;
+				}
+				// Do not set a default - omit if invalid
+			}
+		}
+		
+		// Handle textDecorationOffset
+		if (textDecorationOffset !== undefined) {
+			if (boundVariables?.textDecorationOffset) {
+				const variableId = boundVariables.textDecorationOffset.id;
+				const variable = await figma.variables.getVariableByIdAsync(variableId);
+				const nameParts = variable.name.split("/").map(part => part.toLowerCase());
+				preset.textUnderlineOffset = buildCssVarReference(nameParts);
+			} else {
+				// Only set if we have a valid value
+				if (typeof textDecorationOffset === 'object') {
+					// If it's an object, only use if it has a value property
+					if (textDecorationOffset && 'value' in textDecorationOffset && 
+					    typeof textDecorationOffset.value === 'number') {
+						preset.textUnderlineOffset = `${textDecorationOffset.value}px`;
+					}
+					// Otherwise omit the property
+				} else if (typeof textDecorationOffset === 'number') {
+					// Convert to px units for WordPress
+					preset.textUnderlineOffset = `${textDecorationOffset}px`;
+				}
+				// Do not set a default - omit if invalid
+			}
+		}
+		
+		// Handle textDecorationSkipInk
+		if (textDecorationSkipInk !== undefined && textDecorationSkipInk !== "AUTO") {
+			const skipInkMap = {
+				"NONE": "none",
+				"ALL": "all"
+			};
+			
+			if (boundVariables?.textDecorationSkipInk) {
+				const variableId = boundVariables.textDecorationSkipInk.id;
+				const variable = await figma.variables.getVariableByIdAsync(variableId);
+				const nameParts = variable.name.split("/").map(part => part.toLowerCase());
+				preset.textDecorationSkipInk = buildCssVarReference(nameParts);
+			} else if (textDecorationSkipInk in skipInkMap) {
+				preset.textDecorationSkipInk = skipInkMap[textDecorationSkipInk];
+			}
+		}
+		
+		// Handle hangingPunctuation
+		if (hangingPunctuation !== undefined) {
+			if (boundVariables?.hangingPunctuation) {
+				const variableId = boundVariables.hangingPunctuation.id;
+				const variable = await figma.variables.getVariableByIdAsync(variableId);
+				const nameParts = variable.name.split("/").map(part => part.toLowerCase());
+				preset.hangingPunctuation = buildCssVarReference(nameParts);
+			} else {
+				preset.hangingPunctuation = hangingPunctuation ? "first" : "none";
+			}
+		}
+		
+		// Handle leadingTrim
+		if (leadingTrim !== undefined && leadingTrim !== "AUTO") {
+			const leadingTrimMap = {
+				"NONE": "none",
+				"BOTH": "both",
+				"CAP": "start",
+				"ALPHABETIC": "end"
+			};
+			
+			if (boundVariables?.leadingTrim) {
+				const variableId = boundVariables.leadingTrim.id;
+				const variable = await figma.variables.getVariableByIdAsync(variableId);
+				const nameParts = variable.name.split("/").map(part => part.toLowerCase());
+				preset.leadingTrim = buildCssVarReference(nameParts);
+			} else if (leadingTrim in leadingTrimMap) {
+				preset.leadingTrim = leadingTrimMap[leadingTrim];
+			}
+		}
+		
+		typographyPresets.push(preset);
+	}
+	
+	return typographyPresets;
+}
+
+// Helper function to create a slug from a style name
+function createSlugFromStyleName(styleName: string): string {
+	// Split the style name by common separators to handle hierarchical paths
+	const parts = styleName.toLowerCase().split(/[/|\\-_]/);
+	
+	// Remove duplicate adjacent parts (e.g., "body/body-md" -> "body-md")
+	const uniqueParts = parts.filter((part, index) => {
+		if (index === 0) return true;
+		
+		// Check if this part is a duplicate of the previous part
+		// or if it's a size variant (e.g., md, lg, etc.)
+		const prevPart = parts[index - 1].trim();
+		const currentPart = part.trim();
+		
+		// If the previous part is contained in the current part (e.g., "body" in "body-md"),
+		// or if they're identical, skip the duplicate
+		return !(prevPart === currentPart || 
+			(currentPart.startsWith(prevPart) && 
+			 /^[a-z]+[0-9]*$/.test(currentPart.substring(prevPart.length).trim())));
+	});
+	
+	// Create the slug from the cleaned parts
+	return uniqueParts
+		.join('-')
+		.replace(/[^a-z0-9-]+/g, '-') // Replace any remaining non-alphanumeric chars with dashes
+		.replace(/-+/g, '-')          // Replace multiple consecutive dashes with a single dash
+		.replace(/^-|-$/g, '');       // Remove leading and trailing dashes
+}
+
+// Helper function to format style name for display
+function formatStyleName(styleName: string): string {
+	// Split by common separators to handle hierarchical paths
+	const parts = styleName.split(/[/|\\-_]/);
+	
+	// Remove duplicate adjacent parts
+	const uniqueParts = parts.filter((part, index) => {
+		if (index === 0) return true;
+		
+		// Check if this part is a duplicate of the previous part
+		const prevPart = parts[index - 1].trim().toLowerCase();
+		const currentPart = part.trim().toLowerCase();
+		
+		// If the parts are identical, or the current part is just a variant of the previous part,
+		// skip the duplicate
+		return !(prevPart === currentPart || 
+			(currentPart.startsWith(prevPart) && 
+			 /^[a-z]+[0-9]*$/.test(currentPart.substring(prevPart.length).trim())));
+	});
+	
+	// Format the remaining parts (capitalize first letter of each part)
+	return uniqueParts
+		.map(part => part.trim())
+		.filter(part => part.length > 0)
+		.map(part => part.charAt(0).toUpperCase() + part.slice(1))
+		.join(' ');
+}
+
+// Helper function to try to find a matching font family variable
+async function findFontFamilyVariable(fontFamily: string): Promise<string | null> {
+	// First check if it's a WordPress preset font family
+	const wpPresetMatch = fontFamily.match(/^(sans|serif|monospace|system)$/i);
+	if (wpPresetMatch) {
+		return `var(--wp--preset--font-family--${wpPresetMatch[1].toLowerCase()})`;
+	}
+	
+	// Try to find a custom font family variable in the document
+	try {
+		const collections = await figma.variables.getLocalVariableCollectionsAsync();
+		
+		for (const collection of collections) {
+			const variables = await figma.variables.getVariablesByCollectionIdAsync(collection.id);
+			
+			for (const variable of variables) {
+				// Look for variables that might be font families
+				if (variable.name.toLowerCase().includes('font') && 
+					variable.name.toLowerCase().includes('family')) {
+					
+					const valuesByMode = await figma.variables.getVariableByIdAsync(variable.id)
+						.then(v => v.valuesByMode);
+					
+					// Check each mode's value
+					for (const [_, value] of Object.entries(valuesByMode)) {
+						if (value === fontFamily) {
+							// Found a match, return as a CSS variable reference
+							const nameParts = variable.name.split("/").map(part => part.toLowerCase());
+							return buildCssVarReference(nameParts);
+						}
+					}
+				}
+			}
+		}
+	} catch (error) {
+		console.error("Error finding font family variable:", error);
+	}
+	
+	// If no match is found, check if it might be a custom WordPress preset
+	const cleanedName = fontFamily.toLowerCase().replace(/\s+/g, '-');
+	return `var(--wp--preset--font-family--${cleanedName})`;
+}
+
+// Helper function to try to find a matching font size variable
+async function findFontSizeVariable(fontSize: number): Promise<string | null> {
+	try {
+		const collections = await figma.variables.getLocalVariableCollectionsAsync();
+		
+		for (const collection of collections) {
+			const variables = await figma.variables.getVariablesByCollectionIdAsync(collection.id);
+			
+			for (const variable of variables) {
+				// Look for variables that might be font sizes
+				if (variable.name.toLowerCase().includes('font') && 
+					variable.name.toLowerCase().includes('size')) {
+					
+					const variableInfo = await figma.variables.getVariableByIdAsync(variable.id);
+					
+					// Check each mode's value
+					for (const [_, value] of Object.entries(variableInfo.valuesByMode)) {
+						if (value === fontSize) {
+							// Found a match, return as a CSS variable reference
+							const nameParts = variable.name.split("/").map(part => part.toLowerCase());
+							return buildCssVarReference(nameParts);
+						}
+					}
+				}
+			}
+		}
+	} catch (error) {
+		console.error("Error finding font size variable:", error);
+	}
+	
+	return null;
+}
+
+// Helper function to try to find a matching font weight variable
+async function findFontWeightVariable(fontWeight: number): Promise<string | null> {
+	// Map of common font weight names
+	const weightNames = {
+		100: 'thin',
+		200: 'extra-light',
+		300: 'light',
+		400: 'regular',
+		500: 'medium',
+		600: 'semi-bold',
+		700: 'bold',
+		800: 'extra-bold',
+		900: 'black'
+	};
+	
+	try {
+		const collections = await figma.variables.getLocalVariableCollectionsAsync();
+		
+		for (const collection of collections) {
+			const variables = await figma.variables.getVariablesByCollectionIdAsync(collection.id);
+			
+			for (const variable of variables) {
+				// Look for variables that might be font weights
+				if (variable.name.toLowerCase().includes('font') && 
+					variable.name.toLowerCase().includes('weight')) {
+					
+					const variableInfo = await figma.variables.getVariableByIdAsync(variable.id);
+					
+					// Check each mode's value
+					for (const [_, value] of Object.entries(variableInfo.valuesByMode)) {
+						if (value === fontWeight) {
+							// Found a match, return as a CSS variable reference
+							const nameParts = variable.name.split("/").map(part => part.toLowerCase());
+							return buildCssVarReference(nameParts);
+						}
+					}
+					
+					// Check for name-based match (like "bold" for 700)
+					if (fontWeight in weightNames) {
+						const weightName = weightNames[fontWeight];
+						if (variable.name.toLowerCase().includes(weightName)) {
+							const nameParts = variable.name.split("/").map(part => part.toLowerCase());
+							return buildCssVarReference(nameParts);
+						}
+					}
+				}
+			}
+		}
+	} catch (error) {
+		console.error("Error finding font weight variable:", error);
+	}
+	
+	return null;
 }
 
 // Helper function to merge collection data into the base theme at the appropriate location
@@ -311,7 +1004,7 @@ async function processCollectionData({ name, modes, variableIds }: VariableColle
 						obj[leafName] = maxValue;
 					} else {
 						obj[leafName] = {
-							fluid: true,
+							fluid: "true",
 							min: minValue,
 							max: maxValue
 						};
@@ -341,7 +1034,7 @@ async function processCollectionData({ name, modes, variableIds }: VariableColle
 						obj[leafName] = maxValue;
 					} else {
 						obj[leafName] = {
-							fluid: true,
+							fluid: "true",
 							min: minValue,
 							max: maxValue
 						};
@@ -363,7 +1056,9 @@ async function processCollectionData({ name, modes, variableIds }: VariableColle
 figma.ui.onmessage = async (e) => {
 	console.log("code received message", e);
 	if (e.type === "EXPORT") {
-		await exportToJSON();
+		// Extract options from the message
+		const options: ExportOptions = e.options || {};
+		await exportToJSON(options);
 	}
 };
 
@@ -403,16 +1098,43 @@ function rgbToHex(color: any) {
 	if (typeof color === "string") {
 		return color;
 	}
+	
+	// Check if color is null or not an object
+	if (!color || typeof color !== 'object') {
+		return null; // Return null instead of default color so property can be omitted
+	}
 
-	const { r, g, b, a = 1 } = color;
+	// Check if r, g, b components exist and are numbers
+	if (typeof color.r !== 'number' || typeof color.g !== 'number' || typeof color.b !== 'number') {
+		return null; // Return null for invalid color formats
+	}
+
+	// Safely extract r, g, b values
+	const r = color.r;
+	const g = color.g;
+	const b = color.b;
+	const a = typeof color.a === 'number' ? color.a : 1;
+	
+	// Check for NaN values
+	if (isNaN(r) || isNaN(g) || isNaN(b)) {
+		return null; // Return null if any value is NaN
+	}
 	
 	if (a !== 1) {
-		return `rgba(${[r, g, b]
+		// Ensure each RGB value is valid before converting
+		const rValue = Math.max(0, Math.min(1, r));
+		const gValue = Math.max(0, Math.min(1, g));
+		const bValue = Math.max(0, Math.min(1, b));
+		
+		return `rgba(${[rValue, gValue, bValue]
 			.map((n) => Math.round(n * 255))
 			.join(", ")}, ${a.toFixed(4)})`;
 	}
+	
 	const toHex = (value) => {
-		const hex = Math.round(value * 255).toString(16);
+		// Clamp value between 0-1
+		const clampedValue = Math.max(0, Math.min(1, value));
+		const hex = Math.round(clampedValue * 255).toString(16);
 		return hex.length === 1 ? "0" + hex : hex;
 	};
 
@@ -603,4 +1325,18 @@ function processButtonStyles(buttonData: Record<string, any>, allFiles: any[]): 
 // Helper function to capitalize the first letter of a string
 function capitalizeFirstLetter(str) {
 	return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
+// Helper function to round numbers nicely with max 3 decimal places
+function roundToMax3Decimals(value: number): number | string {
+	// Round to 3 decimal places
+	const rounded = Math.round(value * 1000) / 1000;
+	// Convert to string to check if it's an integer
+	const valueStr = rounded.toString();
+	// If it's a whole number, return it as a number
+	if (valueStr.indexOf('.') === -1) {
+		return rounded;
+	}
+	// Return as string with no trailing zeros
+	return parseFloat(valueStr).toString();
 }

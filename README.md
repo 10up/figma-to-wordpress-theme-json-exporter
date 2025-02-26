@@ -13,6 +13,10 @@ This Figma plugin converts Figma design tokens/variables into WordPress theme.js
 - Support for responsive/fluid variables
 - Automatic unit handling (px) for specific value types
 - Supports downloading the generated files as a zip package
+- Typography handling with text styles to theme.json conversion
+- Line height values converted from percentage to decimal format (e.g., 120% → 1.2)
+- Text decoration properties with proper color, thickness, and offset handling
+- Omits empty or invalid properties rather than using fallbacks
 
 ## Usage
 
@@ -81,6 +85,15 @@ When the "Color" collection includes a "button" group with variants:
 - Each non-primary button variant (e.g., secondary, tertiary, etc.) is exported as a separate file: `styles/button-{variant-name}.json`
 - These files include proper metadata for WordPress block style variations
 
+### Typography Handling
+
+The plugin can generate typography presets from Figma text styles:
+
+- Font family, size, weight, and line height are extracted from text styles
+- Line height values in percentage format (120%) are automatically converted to decimal format (1.2) as required by WordPress
+- Text decoration properties (color, style, thickness, offset) are properly handled
+- The plugin omits empty or invalid properties rather than using fallbacks to ensure clean output
+
 ### Responsive/Fluid Variables
 
 If a collection has exactly two modes named "Desktop" and "Mobile", the plugin treats them as responsive variables:
@@ -89,13 +102,15 @@ If a collection has exactly two modes named "Desktop" and "Mobile", the plugin t
 {
   "spacing": {
     "base": {
-      "fluid": true,
+      "fluid": "true",
       "min": "8px",
       "max": "16px"
     }
   }
 }
 ```
+
+Note: The "fluid" property is output as a string value "true" rather than a boolean to ensure compatibility with WordPress theme.json parsing.
 
 ### Units Handling
 
