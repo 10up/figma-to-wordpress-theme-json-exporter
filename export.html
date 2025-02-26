@@ -18,8 +18,7 @@
 	}
   
 	html,
-	body,
-	main {
+	body {
 	  height: 100%;
 	}
   
@@ -27,6 +26,8 @@
 	  display: flex;
 	  flex-direction: column;
 	  gap: var(--spacing);
+	  max-height: 100%;
+	  overflow-y: auto;
 	}
   
 	button {
@@ -39,19 +40,19 @@
 	  background-color: var(--figma-color-bg-secondary);
 	  border: 2px solid var(--figma-color-border);
 	  color: var(--figma-color-text-secondary);
-	  flex: 1;
+	  height: 200px;
 	  font-family: Andale Mono, monospace;
 	  font-size: 0.9rem;
 	  overflow: auto;
 	  padding: var(--spacing);
 	  white-space: pre;
+	  resize: vertical;
 	}
 	textarea:focus {
 	  border-color: var(--figma-color-border-selected);
 	  outline: none;
 	}
   
-	button,
 	textarea {
 	  display: block;
 	  width: 100%;
@@ -97,6 +98,61 @@
 	.features strong {
 	  color: var(--figma-color-text);
 	}
+
+	.file-container {
+	  border: 1px solid var(--figma-color-border);
+	  border-radius: 4px;
+	  margin-bottom: var(--spacing);
+	  overflow: hidden;
+	}
+
+	.file-header {
+	  background-color: var(--figma-color-bg);
+	  border-bottom: 1px solid var(--figma-color-border);
+	  display: flex;
+	  justify-content: space-between;
+	  align-items: center;
+	  padding: calc(var(--spacing) / 2) var(--spacing);
+	}
+
+	.file-name {
+	  font-weight: bold;
+	  font-size: 0.9rem;
+	}
+
+	.file-actions {
+	  display: flex;
+	  gap: calc(var(--spacing) / 2);
+	}
+
+	.copy-button {
+	  background-color: var(--figma-color-bg-disabled);
+	  color: var(--figma-color-text);
+	  font-size: 0.8rem;
+	  padding: calc(var(--spacing) / 2);
+	}
+
+	.copy-button:hover {
+	  background-color: var(--figma-color-bg-hover);
+	}
+
+	.copy-success {
+	  background-color: var(--figma-color-bg-success);
+	  color: var(--figma-color-text-onbrand);
+	}
+
+	#files-container {
+	  display: flex;
+	  flex-direction: column;
+	  gap: var(--spacing);
+	}
+
+	.empty-state {
+	  color: var(--figma-color-text-disabled);
+	  text-align: center;
+	  padding: var(--spacing);
+	  font-style: italic;
+	}
   </style>
   <main>
 	<div class="info-text">
@@ -114,10 +170,11 @@
 	  <button id="export" type="button">Export Variables</button>
 	  <button id="download" type="button">Download theme.json</button>
 	</div>
-	<textarea
-	  placeholder="Exported variables will render here in WordPress theme.json format with CSS custom property references..."
-	  readonly
-	></textarea>
+	<div id="files-container">
+	  <div class="empty-state">
+		Click "Export Variables" to generate WordPress theme files from your Figma variables.
+	  </div>
+	</div>
   </main>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
@@ -126,13 +183,61 @@
 
 	window.onmessage = ({ data: { pluginMessage } }) => {
 	  if (pluginMessage.type === "EXPORT_RESULT") {
+		if (pluginMessage.error) {
+		  // Display error message
+		  const filesContainer = document.getElementById('files-container');
+		  filesContainer.innerHTML = `<div class="empty-state error">${pluginMessage.error}</div>`;
+		  return;
+		}
+
 		currentFiles = pluginMessage.files;
-		document.querySelector("textarea").innerHTML = currentFiles
-		  .map(
-			({ fileName, body }) =>
-			  `/* ${fileName} */\n\n${JSON.stringify(body, null, 2)}`
-		  )
-		  .join("\n\n\n");
+		
+		// Clear the files container
+		const filesContainer = document.getElementById('files-container');
+		filesContainer.innerHTML = '';
+		
+		// Add each file to the container
+		currentFiles.forEach((file, index) => {
+		  const { fileName, body } = file;
+		  const fileContent = JSON.stringify(body, null, 2);
+		  
+		  // Create file container
+		  const fileContainer = document.createElement('div');
+		  fileContainer.className = 'file-container';
+		  
+		  // Create file header with name and actions
+		  const fileHeader = document.createElement('div');
+		  fileHeader.className = 'file-header';
+		  
+		  const fileName2 = document.createElement('div');
+		  fileName2.className = 'file-name';
+		  fileName2.textContent = fileName;
+		  
+		  const fileActions = document.createElement('div');
+		  fileActions.className = 'file-actions';
+		  
+		  const copyButton = document.createElement('button');
+		  copyButton.className = 'copy-button';
+		  copyButton.textContent = 'Copy';
+		  copyButton.onclick = () => copyToClipboard(index);
+		  
+		  fileActions.appendChild(copyButton);
+		  fileHeader.appendChild(fileName2);
+		  fileHeader.appendChild(fileActions);
+		  
+		  // Create textarea for the file content
+		  const textarea = document.createElement('textarea');
+		  textarea.readOnly = true;
+		  textarea.id = `file-content-${index}`;
+		  textarea.value = fileContent;
+		  
+		  // Assemble the file container
+		  fileContainer.appendChild(fileHeader);
+		  fileContainer.appendChild(textarea);
+		  
+		  // Add to files container
+		  filesContainer.appendChild(fileContainer);
+		});
 		
 		// Show download button if we have files
 		if (currentFiles.length > 0) {
@@ -145,6 +250,24 @@
 		}
 	  }
 	};
+
+	function copyToClipboard(fileIndex) {
+	  const textarea = document.getElementById(`file-content-${fileIndex}`);
+	  textarea.select();
+	  document.execCommand('copy');
+	  
+	  // Show success state
+	  const copyButton = textarea.previousElementSibling.querySelector('.copy-button');
+	  const originalText = copyButton.textContent;
+	  copyButton.textContent = 'Copied!';
+	  copyButton.classList.add('copy-success');
+	  
+	  // Reset button after a delay
+	  setTimeout(() => {
+		copyButton.textContent = originalText;
+		copyButton.classList.remove('copy-success');
+	  }, 2000);
+	}
 
 	document.getElementById("export").addEventListener("click", () => {
 	  parent.postMessage({ pluginMessage: { type: "EXPORT" } }, "*");
