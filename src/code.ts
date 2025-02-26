@@ -30,6 +30,9 @@ async function exportToJSON() {
 		}
 	};
 
+	// Array to store all files we need to output
+	const allFiles = [themeFile];
+
 	// Process all other collections and merge them into the base theme
 	for (const collection of collections) {
 		// Skip the primitives collection as we've already processed it
@@ -37,17 +40,86 @@ async function exportToJSON() {
 			continue;
 		}
 
-		// Process this collection's data
-		const collectionData = await processCollectionData(collection);
-		
-		// Determine where to merge this collection's data based on its name
-		const collectionName = collection.name.toLowerCase();
-		
-		// Merge the collection data into the appropriate location in the base theme
-		mergeCollectionData(themeFile.body.settings.custom, collectionName, collectionData);
+		// Special handling for the Color collection
+		if (collection.name.toLowerCase() === "color" && collection.modes.length > 0) {
+			// Process the first mode normally and merge into the main theme
+			const firstModeData = await processCollectionModeData(collection, collection.modes[0]);
+			
+			// Merge the first mode data into the appropriate location in the base theme
+			mergeCollectionData(themeFile.body.settings.custom, "color", firstModeData);
+			
+			// Output the first mode as a separate file too
+			const firstMode = collection.modes[0];
+			const firstModeNameSlug = firstMode.name.toLowerCase().replace(/\s+/g, '-');
+			const firstModeSectionFile = {
+				fileName: `styles/section-${firstModeNameSlug}.json`,
+				body: {
+					"$schema": "https://schemas.wp.org/trunk/theme.json",
+					"version": 3,
+					"title": firstMode.name,
+					"slug": `section-${firstModeNameSlug}`,
+					"blockTypes": ["core/group"],
+					"settings": {
+						"custom": {
+							"color": firstModeData
+						}
+					},
+					"styles": {
+						"color": {
+							"background": "var(--wp--custom--color--surface--primary)",
+							"text": "var(--wp--custom--color--text--primary)"
+						}
+					}
+				}
+			};
+			allFiles.push(firstModeSectionFile);
+			
+			// Process additional modes for the Color collection
+			for (let i = 1; i < collection.modes.length; i++) {
+				const mode = collection.modes[i];
+				const modeData = await processCollectionModeData(collection, mode);
+				
+				// Create separate file for this color mode
+				const modeNameSlug = mode.name.toLowerCase().replace(/\s+/g, '-');
+				const sectionFile = {
+					fileName: `styles/section-${modeNameSlug}.json`,
+					body: {
+						"$schema": "https://schemas.wp.org/trunk/theme.json",
+						"version": 3,
+						"title": mode.name,
+						"slug": `section-${modeNameSlug}`,
+						"blockTypes": ["core/group"],
+						"settings": {
+							"custom": {
+								"color": modeData
+							}
+						},
+						"styles": {
+							"color": {
+								"background": "var(--wp--custom--color--surface--primary)",
+								"text": "var(--wp--custom--color--text--primary)"
+							}
+						}
+					}
+				};
+				
+				// Add this section file to our output
+				allFiles.push(sectionFile);
+			}
+		} else {
+			// For non-Color collections or Color collection with just one mode,
+			// process normally
+			const collectionData = await processCollectionData(collection);
+			
+			// Determine where to merge this collection's data based on its name
+			const collectionName = collection.name.toLowerCase();
+			
+			// Merge the collection data into the appropriate location in the base theme
+			mergeCollectionData(themeFile.body.settings.custom, collectionName, collectionData);
+		}
 	}
 
-	figma.ui.postMessage({ type: "EXPORT_RESULT", files: [themeFile] });
+	figma.ui.postMessage({ type: "EXPORT_RESULT", files: allFiles });
 }
 
 // Helper function to merge collection data into the base theme at the appropriate location
@@ -91,6 +163,12 @@ function isVariableAlias(value: any): boolean {
 	return value && typeof value === 'object' && value.type === "VARIABLE_ALIAS";
 }
 
+// TypeScript interface for Figma Variable Collection Mode
+interface VariableCollectionMode {
+	modeId: string;
+	name: string;
+}
+
 // Helper function to determine if a value should have 'px' units appended
 function shouldAddPxUnit(nameParts: string[], value: any): boolean {
 	// Skip if value is not a number or is already a string
@@ -113,7 +191,49 @@ function formatValueWithUnits(nameParts: string[], value: any): any {
 	return value;
 }
 
-// Helper function to process a collection and extract its data structure
+// New helper function to process a specific mode of a collection
+async function processCollectionModeData(collection: VariableCollection, mode: VariableCollectionMode) {
+	const { variableIds } = collection;
+	const variablesData = {};
+
+	for (const variableId of variableIds) {
+		const { name, resolvedType, valuesByMode } =
+			await figma.variables.getVariableByIdAsync(variableId);
+		const value = valuesByMode[mode.modeId];
+
+		if (value !== undefined && ["COLOR", "FLOAT"].includes(resolvedType)) {
+			// Build the nested structure in our temporary object
+			let obj = variablesData;
+			// Convert the name parts to lowercase
+			const nameParts = name.split("/").map(part => part.toLowerCase());
+
+			// Navigate to the appropriate nesting level
+			for (let i = 0; i < nameParts.length - 1; i++) {
+				const part = nameParts[i];
+				obj[part] = obj[part] || {};
+				obj = obj[part];
+			}
+
+			// Set the actual value at the leaf node
+			const leafName = nameParts[nameParts.length - 1];
+
+			if (isVariableAlias(value)) {
+				const currentVar = await figma.variables.getVariableByIdAsync((value as any).id);
+				// Convert the reference to a CSS custom property reference with lowercase parts
+				const referenceParts = currentVar.name.split("/").map(part => part.toLowerCase());
+				obj[leafName] = buildCssVarReference(referenceParts);
+			} else {
+				obj[leafName] = resolvedType === "COLOR" ? 
+					rgbToHex(value) : 
+					formatValueWithUnits(nameParts, value);
+			}
+		}
+	}
+
+	return variablesData;
+}
+
+// Update processCollectionData to use the new helper function
 async function processCollectionData({ name, modes, variableIds }: VariableCollection) {
 	// Check if this collection has exactly two modes named "Desktop" and "Mobile"
 	const isFluidCollection = modes.length === 2 &&
@@ -215,46 +335,11 @@ async function processCollectionData({ name, modes, variableIds }: VariableColle
 
 		return variablesData;
 	} else {
-		// Handle regular collection with a single mode
-		// For simplicity, we'll use the first mode if multiple are present
-		const mode = modes[0];
-		const variablesData = {};
-
-		for (const variableId of variableIds) {
-			const { name, resolvedType, valuesByMode } =
-				await figma.variables.getVariableByIdAsync(variableId);
-			const value = valuesByMode[mode.modeId];
-
-			if (value !== undefined && ["COLOR", "FLOAT"].includes(resolvedType)) {
-				// Build the nested structure in our temporary object
-				let obj = variablesData;
-				// Convert the name parts to lowercase
-				const nameParts = name.split("/").map(part => part.toLowerCase());
-
-				// Navigate to the appropriate nesting level
-				for (let i = 0; i < nameParts.length - 1; i++) {
-					const part = nameParts[i];
-					obj[part] = obj[part] || {};
-					obj = obj[part];
-				}
-
-				// Set the actual value at the leaf node
-				const leafName = nameParts[nameParts.length - 1];
-
-				if (isVariableAlias(value)) {
-					const currentVar = await figma.variables.getVariableByIdAsync((value as any).id);
-					// Convert the reference to a CSS custom property reference with lowercase parts
-					const referenceParts = currentVar.name.split("/").map(part => part.toLowerCase());
-					obj[leafName] = buildCssVarReference(referenceParts);
-				} else {
-					obj[leafName] = resolvedType === "COLOR" ? 
-						rgbToHex(value) : 
-						formatValueWithUnits(nameParts, value);
-				}
-			}
-		}
-
-		return variablesData;
+		// For regular collections, use the first mode
+		return await processCollectionModeData(
+			{ name, modes, variableIds } as VariableCollection, 
+			modes[0]
+		);
 	}
 }
 
