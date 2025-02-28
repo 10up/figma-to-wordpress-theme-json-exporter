@@ -5,6 +5,7 @@
   "editorType": ["figma"],
   "permissions": [],
   "main": "dist/code.js",
+  "networkAccess": { "allowedDomains": ["https://cdnjs.cloudflare.com"] },
   "menu": [
     { "command": "export", "name": "Export to theme.json" }
   ],
