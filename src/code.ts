@@ -1,12 +1,3 @@
-// Create an interface for the custom settings structure
-interface ThemeCustomSettings {
-	[key: string]: any;
-	typography?: {
-		presets?: any[];
-		[key: string]: any;
-	};
-}
-
 console.clear();
 
 // Array to track which button variants we've already processed
@@ -31,7 +22,7 @@ async function exportToJSON(options: ExportOptions = {}) {
 	);
 
 	// Start with the base theme if provided, otherwise create a new theme object
-	let theme = options.baseTheme || {
+	const theme = options.baseTheme || {
 		"$schema": "https://schemas.wp.org/trunk/theme.json",
 		"version": 3,
 		"settings": {
@@ -228,11 +219,11 @@ async function getTypographyPresets(): Promise<any[]> {
 
 		// Add typography properties
 		const {
-			// @ts-ignore-next-line the types are wrong
+			// @ts-expect-error the types are wrong
 			fontFamily, fontSize, fontWeight, fontName, lineHeight, letterSpacing,
-			// @ts-ignore-next-line the types are wrong
+			// @ts-expect-error the types are wrong
 			textCase, textDecoration, textDecorationColor, textDecorationOffset,
-			// @ts-ignore-next-line the types are wrong
+			// @ts-expect-error the types are wrong
 			textDecorationSkipInk, textDecorationStyle, textDecorationThickness,
 			hangingPunctuation, leadingTrim, boundVariables
 		} = style;
@@ -426,9 +417,9 @@ async function getTypographyPresets(): Promise<any[]> {
 				"SMALL_CAPS_FORCED": "small-caps"
 			};
 
-			// @ts-ignore-next-line the types are wrong
+			// @ts-expect-error the types are wrong
 			if (boundVariables?.textCase) {
-				// @ts-ignore-next-line the types are wrong
+				// @ts-expect-error the types are wrong
 				const variableId = boundVariables.textCase.id;
 				const variable = await figma.variables.getVariableByIdAsync(variableId);
 				const nameParts = variable.name.split("/").map(part => part.toLowerCase());
@@ -445,9 +436,9 @@ async function getTypographyPresets(): Promise<any[]> {
 				"STRIKETHROUGH": "line-through"
 			};
 
-			// @ts-ignore-next-line the types are wrong
+			// @ts-expect-error the types are wrong
 			if (boundVariables?.textDecoration) {
-				// @ts-ignore-next-line the types are wrong
+				// @ts-expect-error the types are wrong
 				const variableId = boundVariables.textDecoration.id;
 				const variable = await figma.variables.getVariableByIdAsync(variableId);
 				const nameParts = variable.name.split("/").map(part => part.toLowerCase());
@@ -459,9 +450,9 @@ async function getTypographyPresets(): Promise<any[]> {
 
 		// Handle textDecorationColor
 		if (textDecorationColor) {
-			// @ts-ignore-next-line the types are wrong
+			// @ts-expect-error the types are wrong
 			if (boundVariables?.textDecorationColor) {
-				// @ts-ignore-next-line the types are wrong
+				// @ts-expect-error the types are wrong
 				const variableId = boundVariables.textDecorationColor.id;
 				const variable = await figma.variables.getVariableByIdAsync(variableId);
 				const nameParts = variable.name.split("/").map(part => part.toLowerCase());
@@ -485,9 +476,9 @@ async function getTypographyPresets(): Promise<any[]> {
 				"WAVY": "wavy"
 			};
 
-			// @ts-ignore-next-line the types are wrong
+			// @ts-expect-error the types are wrong
 			if (boundVariables?.textDecorationStyle) {
-				// @ts-ignore-next-line the types are wrong
+				// @ts-expect-error the types are wrong
 				const variableId = boundVariables.textDecorationStyle.id;
 				const variable = await figma.variables.getVariableByIdAsync(variableId);
 				const nameParts = variable.name.split("/").map(part => part.toLowerCase());
@@ -499,9 +490,9 @@ async function getTypographyPresets(): Promise<any[]> {
 
 		// Handle textDecorationThickness
 		if (textDecorationThickness !== undefined) {
-			// @ts-ignore-next-line the types are wrong
+			// @ts-expect-error the types are wrong
 			if (boundVariables?.textDecorationThickness) {
-				// @ts-ignore-next-line the types are wrong
+				// @ts-expect-error the types are wrong
 				const variableId = boundVariables.textDecorationThickness.id;
 				const variable = await figma.variables.getVariableByIdAsync(variableId);
 				const nameParts = variable.name.split("/").map(part => part.toLowerCase());
@@ -525,9 +516,9 @@ async function getTypographyPresets(): Promise<any[]> {
 
 		// Handle textDecorationOffset
 		if (textDecorationOffset !== undefined) {
-			// @ts-ignore-next-line the types are wrong
+			// @ts-expect-error the types are wrong
 			if (boundVariables?.textDecorationOffset) {
-				// @ts-ignore-next-line the types are wrong
+				// @ts-expect-error the types are wrong
 				const variableId = boundVariables.textDecorationOffset.id;
 				const variable = await figma.variables.getVariableByIdAsync(variableId);
 				const nameParts = variable.name.split("/").map(part => part.toLowerCase());
@@ -556,9 +547,9 @@ async function getTypographyPresets(): Promise<any[]> {
 				"ALL": "all"
 			};
 
-			// @ts-ignore-next-line the types are wrong
+			// @ts-expect-error the types are wrong
 			if (boundVariables?.textDecorationSkipInk) {
-				// @ts-ignore-next-line the types are wrong
+				// @ts-expect-error the types are wrong
 				const variableId = boundVariables.textDecorationSkipInk.id;
 				const variable = await figma.variables.getVariableByIdAsync(variableId);
 				const nameParts = variable.name.split("/").map(part => part.toLowerCase());
@@ -570,9 +561,9 @@ async function getTypographyPresets(): Promise<any[]> {
 
 		// Handle hangingPunctuation
 		if (hangingPunctuation !== undefined) {
-			// @ts-ignore-next-line the types are wrong
+			// @ts-expect-error the types are wrong
 			if (boundVariables?.hangingPunctuation) {
-				// @ts-ignore-next-line the types are wrong
+				// @ts-expect-error the types are wrong
 				const variableId = boundVariables.hangingPunctuation.id;
 				const variable = await figma.variables.getVariableByIdAsync(variableId);
 				const nameParts = variable.name.split("/").map(part => part.toLowerCase());
@@ -583,7 +574,7 @@ async function getTypographyPresets(): Promise<any[]> {
 		}
 
 		// Handle leadingTrim
-		// @ts-ignore-next-line the types are wrong
+		// @ts-expect-error the types are wrong
 		if (leadingTrim !== undefined && leadingTrim !== "AUTO") {
 			const leadingTrimMap = {
 				"NONE": "none",
@@ -592,9 +583,9 @@ async function getTypographyPresets(): Promise<any[]> {
 				"ALPHABETIC": "end"
 			};
 
-			// @ts-ignore-next-line the types are wrong
+			// @ts-expect-error the types are wrong
 			if (boundVariables?.leadingTrim) {
-				// @ts-ignore-next-line the types are wrong
+				// @ts-expect-error the types are wrong
 				const variableId = boundVariables.leadingTrim.id;
 				const variable = await figma.variables.getVariableByIdAsync(variableId);
 				const nameParts = variable.name.split("/").map(part => part.toLowerCase());
@@ -680,7 +671,7 @@ async function findFontFamilyVariable(fontFamily: string): Promise<string | null
 		const collections = await figma.variables.getLocalVariableCollectionsAsync();
 
 		for (const collection of collections) {
-			// @ts-ignore-next-line the types are wrong
+			// @ts-expect-error the types are wrong
 			const variables = await figma.variables.getVariablesByCollectionIdAsync(collection.id);
 
 			for (const variable of variables) {
@@ -717,7 +708,7 @@ async function findFontSizeVariable(fontSize: number): Promise<string | null> {
 		const collections = await figma.variables.getLocalVariableCollectionsAsync();
 
 		for (const collection of collections) {
-			// @ts-ignore-next-line the types are wrong
+			// @ts-expect-error the types are wrong
 			const variables = await figma.variables.getVariablesByCollectionIdAsync(collection.id);
 
 			for (const variable of variables) {
@@ -764,7 +755,7 @@ async function findFontWeightVariable(fontWeight: number): Promise<string | null
 		const collections = await figma.variables.getLocalVariableCollectionsAsync();
 
 		for (const collection of collections) {
-			// @ts-ignore-next-line the types are wrong
+			// @ts-expect-error the types are wrong
 			const variables = await figma.variables.getVariablesByCollectionIdAsync(collection.id);
 
 			for (const variable of variables) {
@@ -1052,10 +1043,6 @@ function camelToKebabCase(value: string) {
 	return value.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase();
 }
 
-function isAlias(value) {
-	return value.toString().trim().charAt(0) === "{";
-}
-
 // Helper function to build a WordPress custom property path
 function buildWpCustomPropertyPath(nameParts: string[]) {
 	// Convert each part to lowercase and then kebab case
@@ -1117,82 +1104,6 @@ function rgbToHex(color: any) {
 
 	const hex = [toHex(r), toHex(g), toHex(b)].join("");
 	return `#${hex}`;
-}
-
-function parseColor(color) {
-	color = color.trim();
-	const rgbRegex = /^rgb\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*\)$/;
-	const rgbaRegex =
-		/^rgba\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*([\d.]+)\s*\)$/;
-	const hslRegex = /^hsl\(\s*(\d{1,3})\s*,\s*(\d{1,3})%\s*,\s*(\d{1,3})%\s*\)$/;
-	const hslaRegex =
-		/^hsla\(\s*(\d{1,3})\s*,\s*(\d{1,3})%\s*,\s*(\d{1,3})%\s*,\s*([\d.]+)\s*\)$/;
-	const hexRegex = /^#([A-Fa-f0-9]{3}){1,2}$/;
-	const floatRgbRegex =
-		/^\{\s*r:\s*[\d\.]+,\s*g:\s*[\d\.]+,\s*b:\s*[\d\.]+(,\s*opacity:\s*[\d\.]+)?\s*\}$/;
-
-	if (rgbRegex.test(color)) {
-		const [, r, g, b] = color.match(rgbRegex);
-		return { r: parseInt(r) / 255, g: parseInt(g) / 255, b: parseInt(b) / 255 };
-	} else if (rgbaRegex.test(color)) {
-		const [, r, g, b, a] = color.match(rgbaRegex);
-		return {
-			r: parseInt(r) / 255,
-			g: parseInt(g) / 255,
-			b: parseInt(b) / 255,
-			a: parseFloat(a),
-		};
-	} else if (hslRegex.test(color)) {
-		const [, h, s, l] = color.match(hslRegex);
-		return hslToRgbFloat(parseInt(h), parseInt(s) / 100, parseInt(l) / 100);
-	} else if (hslaRegex.test(color)) {
-		const [, h, s, l, a] = color.match(hslaRegex);
-		return Object.assign(
-			hslToRgbFloat(parseInt(h), parseInt(s) / 100, parseInt(l) / 100),
-			{ a: parseFloat(a) }
-		);
-	} else if (hexRegex.test(color)) {
-		const hexValue = color.substring(1);
-		const expandedHex =
-			hexValue.length === 3
-				? hexValue
-					.split("")
-					.map((char) => char + char)
-					.join("")
-				: hexValue;
-		return {
-			r: parseInt(expandedHex.slice(0, 2), 16) / 255,
-			g: parseInt(expandedHex.slice(2, 4), 16) / 255,
-			b: parseInt(expandedHex.slice(4, 6), 16) / 255,
-		};
-	} else if (floatRgbRegex.test(color)) {
-		return JSON.parse(color);
-	} else {
-		throw new Error("Invalid color format");
-	}
-}
-
-function hslToRgbFloat(h, s, l) {
-	const hue2rgb = (p, q, t) => {
-		if (t < 0) t += 1;
-		if (t > 1) t -= 1;
-		if (t < 1 / 6) return p + (q - p) * 6 * t;
-		if (t < 1 / 2) return q;
-		if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
-		return p;
-	};
-
-	if (s === 0) {
-		return { r: l, g: l, b: l };
-	}
-
-	const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
-	const p = 2 * l - q;
-	const r = hue2rgb(p, q, (h + 1 / 3) % 1);
-	const g = hue2rgb(p, q, h % 1);
-	const b = hue2rgb(p, q, (h - 1 / 3) % 1);
-
-	return { r, g, b };
 }
 
 // Helper function to process button styles in the color data
