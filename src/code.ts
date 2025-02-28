@@ -794,13 +794,25 @@ async function findFontWeightVariable(fontWeight: number): Promise<string | null
 
 // Helper function to merge collection data into the base theme at the appropriate location
 function mergeCollectionData(baseTheme, collectionName, collectionData) {
-	// If a matching section already exists in the base theme, merge into it
-	if (baseTheme[collectionName]) {
-		// Deep merge the collection data with the existing section
-		baseTheme[collectionName] = deepMerge(baseTheme[collectionName], collectionData);
+	// If collection name is empty, merge directly into base theme
+	if (collectionName === "") {
+		// Deep merge the collection data with the base theme
+		Object.keys(collectionData).forEach(key => {
+			if (baseTheme[key]) {
+				baseTheme[key] = deepMerge(baseTheme[key], collectionData[key]);
+			} else {
+				baseTheme[key] = collectionData[key];
+			}
+		});
 	} else {
-		// If no matching section exists, add the entire collection to the base theme
-		baseTheme[collectionName] = collectionData;
+		// If a matching section already exists in the base theme, merge into it
+		if (baseTheme[collectionName]) {
+			// Deep merge the collection data with the existing section
+			baseTheme[collectionName] = deepMerge(baseTheme[collectionName], collectionData);
+		} else {
+			// If no matching section exists, add the entire collection to the base theme
+			baseTheme[collectionName] = collectionData;
+		}
 	}
 }
 
