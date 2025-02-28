@@ -601,61 +601,40 @@ async function getTypographyPresets(): Promise<any[]> {
 	return typographyPresets;
 }
 
-// Helper function to create a slug from a style name
-function createSlugFromStyleName(styleName: string): string {
-	// Split the style name by common separators to handle hierarchical paths
-	const parts = styleName.toLowerCase().split(/[/|\\-_]/);
-
-	// Remove duplicate adjacent parts (e.g., "body/body-md" -> "body-md")
-	const uniqueParts = parts.filter((part, index) => {
-		if (index === 0) return true;
-
-		// Check if this part is a duplicate of the previous part
-		// or if it's a size variant (e.g., md, lg, etc.)
-		const prevPart = parts[index - 1].trim();
-		const currentPart = part.trim();
-
-		// If the previous part is contained in the current part (e.g., "body" in "body-md"),
-		// or if they're identical, skip the duplicate
-		return !(prevPart === currentPart ||
-			(currentPart.startsWith(prevPart) &&
-				/^[a-z]+[0-9]*$/.test(currentPart.substring(prevPart.length).trim())));
+// Helper function to format style name for display
+function formatStyleName(fullStyleName: string): string {
+	// First get the slug from the style name
+	const slug = createSlugFromStyleName(fullStyleName);
+	
+	// Split the slug by dashes
+	const parts = slug.split('-');
+	
+	// Format each part
+	const formattedParts = parts.map(part => {
+		// Check if it's a size indicator
+		const sizeIndicators = ['xs', 'sm', 'md', 'lg', 'xl', '2xl', '3xl', '4xl', '5xl'];
+		if (sizeIndicators.includes(part.toLowerCase())) {
+			return part.toUpperCase();
+		}
+		// Otherwise capitalize first letter
+		return part.charAt(0).toUpperCase() + part.slice(1).toLowerCase();
 	});
-
-	// Create the slug from the cleaned parts
-	return uniqueParts
-		.join('-')
-		.replace(/[^a-z0-9-]+/g, '-') // Replace any remaining non-alphanumeric chars with dashes
-		.replace(/-+/g, '-')          // Replace multiple consecutive dashes with a single dash
-		.replace(/^-|-$/g, '');       // Remove leading and trailing dashes
+	
+	// Join the parts with spaces
+	return formattedParts.join(' ');
 }
 
-// Helper function to format style name for display
-function formatStyleName(styleName: string): string {
-	// Split by common separators to handle hierarchical paths
-	const parts = styleName.split(/[/|\\-_]/);
+// Helper function to create a slug from a style name
+function createSlugFromStyleName(styleName: string): string {
+	// Get the last part of the path (after the last slash or backslash)
+	const lastPart = styleName.split(/[/\\]/).pop() || styleName;
 
-	// Remove duplicate adjacent parts
-	const uniqueParts = parts.filter((part, index) => {
-		if (index === 0) return true;
-
-		// Check if this part is a duplicate of the previous part
-		const prevPart = parts[index - 1].trim().toLowerCase();
-		const currentPart = part.trim().toLowerCase();
-
-		// If the parts are identical, or the current part is just a variant of the previous part,
-		// skip the duplicate
-		return !(prevPart === currentPart ||
-			(currentPart.startsWith(prevPart) &&
-				/^[a-z]+[0-9]*$/.test(currentPart.substring(prevPart.length).trim())));
-	});
-
-	// Format the remaining parts (capitalize first letter of each part)
-	return uniqueParts
-		.map(part => part.trim())
-		.filter(part => part.length > 0)
-		.map(part => part.charAt(0).toUpperCase() + part.slice(1))
-		.join(' ');
+	// Convert to lowercase and replace spaces and special characters with dashes
+	return lastPart
+		.toLowerCase()
+		.replace(/[^a-z0-9-]+/g, '-') // Replace any non-alphanumeric chars with dashes
+		.replace(/-+/g, '-')          // Replace multiple consecutive dashes with a single dash
+		.replace(/^-|-$/g, '');       // Remove leading and trailing dashes
 }
 
 // Helper function to try to find a matching font family variable
