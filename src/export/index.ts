@@ -60,31 +60,40 @@ export async function exportToJSON(options: ExportOptions = {}) {
 			// Merge the first mode data into the appropriate location in the base theme
 			mergeCollectionData(theme.settings.custom, "color", firstModeData);
 
-			// Output the first mode as a separate file too
-			const firstMode = collection.modes[0];
-			const firstModeNameSlug = firstMode.name.toLowerCase().replace(/\s+/g, '-');
-			const firstModeSectionFile = {
-				fileName: `styles/section-${firstModeNameSlug}.json`,
-				body: {
-					"$schema": "https://schemas.wp.org/trunk/theme.json",
-					"version": 3,
-					"title": firstMode.name,
-					"slug": `section-${firstModeNameSlug}`,
-					"blockTypes": ["core/group"],
-					"settings": {
-						"custom": {
-							"color": firstModeData
-						}
-					},
-					"styles": {
-						"color": {
-							"background": "var(--wp--custom--color--surface--primary)",
-							"text": "var(--wp--custom--color--text--primary)"
+			// Create section files for Color collections based on specific conditions:
+			// 1. Multiple modes always create section files
+			// 2. Single mode with non-button colors creates section files unless it's only with Primitives
+			const hasNonButtonColors = firstModeData && Object.keys(firstModeData).some(key => key !== 'button');
+			const isOnlyWithPrimitives = collections.length === 2 && primitivesCollection;
+			const shouldCreateSectionFile = collection.modes.length > 1 || (hasNonButtonColors && !isOnlyWithPrimitives);
+
+			if (shouldCreateSectionFile) {
+				// Output the first mode as a separate file
+				const firstMode = collection.modes[0];
+				const firstModeNameSlug = firstMode.name.toLowerCase().replace(/\s+/g, '-');
+				const firstModeSectionFile = {
+					fileName: `styles/section-${firstModeNameSlug}.json`,
+					body: {
+						"$schema": "https://schemas.wp.org/trunk/theme.json",
+						"version": 3,
+						"title": firstMode.name,
+						"slug": `section-${firstModeNameSlug}`,
+						"blockTypes": ["core/group"],
+						"settings": {
+							"custom": {
+								"color": firstModeData
+							}
+						},
+						"styles": {
+							"color": {
+								"background": "var(--wp--custom--color--surface--primary)",
+								"text": "var(--wp--custom--color--text--primary)"
+							}
 						}
 					}
-				}
-			};
-			allFiles.push(firstModeSectionFile);
+				};
+				allFiles.push(firstModeSectionFile);
+			}
 
 			// Process additional modes for the Color collection
 			for (let i = 1; i < collection.modes.length; i++) {

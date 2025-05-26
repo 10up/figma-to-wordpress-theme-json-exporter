@@ -1,6 +1,6 @@
 // Helper function to check if a value appears to be a variable alias
 export function isVariableAlias(value: any): boolean {
-	return value && typeof value === 'object' && value.type === "VARIABLE_ALIAS";
+	return value != null && typeof value === 'object' && value.type === "VARIABLE_ALIAS";
 }
 
 // Helper function to merge collection data into the base theme at the appropriate location

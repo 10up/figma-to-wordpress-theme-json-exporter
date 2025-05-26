@@ -6,9 +6,10 @@ import { roundToMax3Decimals } from '../utils/index';
 export function formatFontPropertyPath(nameParts: string[], propertyType: string): string[] {
 	// Convert all parts to lowercase
 	const lowerParts = nameParts.map(part => part.toLowerCase());
+	const lowerPropertyType = propertyType.toLowerCase();
 
 	// Check if this path already contains the correct prefixes
-	const hasPropertyPrefix = lowerParts.some(part => part === propertyType);
+	const hasPropertyPrefix = lowerParts.some(part => part === lowerPropertyType);
 	const hasFontPrefix = lowerParts.some(part => part === 'font');
 
 	// Create new array with the required prefixes if they don't exist
@@ -16,14 +17,14 @@ export function formatFontPropertyPath(nameParts: string[], propertyType: string
 
 	if (!hasFontPrefix && !hasPropertyPrefix) {
 		// Neither prefix exists, add both
-		formattedParts = ['font', propertyType, ...formattedParts];
+		formattedParts = ['font', lowerPropertyType, ...formattedParts];
 	} else if (hasFontPrefix && !hasPropertyPrefix) {
 		// Only font prefix exists, add property type after it
 		const fontIndex = formattedParts.findIndex(part => part === 'font');
-		formattedParts.splice(fontIndex + 1, 0, propertyType);
+		formattedParts.splice(fontIndex + 1, 0, lowerPropertyType);
 	} else if (!hasFontPrefix && hasPropertyPrefix) {
 		// Only property prefix exists, add font prefix before it
-		const propertyIndex = formattedParts.findIndex(part => part === propertyType);
+		const propertyIndex = formattedParts.findIndex(part => part === lowerPropertyType);
 		formattedParts.splice(propertyIndex, 0, 'font');
 	}
 
@@ -481,11 +482,14 @@ export async function getTypographyPresets(): Promise<any[]> {
 
 // Helper function to format style name for display
 export function formatStyleName(fullStyleName: string): string {
-	// First get the slug from the style name
-	const slug = createSlugFromStyleName(fullStyleName);
+	// Get the last part of the path (after the last slash or backslash)
+	const lastPart = fullStyleName.split(/[/\\]/).pop() || fullStyleName;
 	
-	// Split the slug by dashes
-	const parts = slug.split('-');
+	// Handle camelCase by inserting spaces before capital letters
+	const spacedName = lastPart.replace(/([a-z])([A-Z])/g, '$1 $2');
+	
+	// Split by spaces, dashes, or underscores
+	const parts = spacedName.split(/[\s\-_]+/).filter(part => part.length > 0);
 	
 	// Format each part
 	const formattedParts = parts.map(part => {

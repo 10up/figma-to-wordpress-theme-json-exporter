@@ -12,23 +12,6 @@ export function processButtonStyles(buttonData: Record<string, any>, allFiles: a
 		return;
 	}
 
-	// Instead of directly copying primary button properties, create references to CSS variables
-	const buttonStates = ['default', 'hover', 'disabled'];
-	buttonStates.forEach(state => {
-		if (buttonData.primary[state]) {
-			// Create the state object at root level if it doesn't exist
-			if (!buttonData[state]) {
-				buttonData[state] = {};
-			}
-
-			// For each property in the primary button state, create a CSS variable reference
-			for (const prop in buttonData.primary[state]) {
-				// Reference the property using a CSS var that points to the primary button value
-				buttonData[state][prop] = `var(--wp--custom--color--button--primary--${state}--${prop})`;
-			}
-		}
-	});
-
 	// Define known button variant names (case-insensitive)
 	// This ensures we only generate files for main button variants
 	const knownButtonVariants = ['secondary', 'tertiary', 'outline', 'ghost', 'link', 'destructive'];
@@ -39,8 +22,9 @@ export function processButtonStyles(buttonData: Record<string, any>, allFiles: a
 		return (
 			// Skip primary as we don't want a file for it
 			keyLower !== 'primary' &&
-			// Match against our known button variant names
-			knownButtonVariants.includes(keyLower) &&
+			// Match against our known button variant names (exact match or contains the variant name)
+			(knownButtonVariants.includes(keyLower) || 
+			 knownButtonVariants.some(variant => keyLower.includes(variant))) &&
 			// Only include if it's a direct property (not inherited)
 			Object.prototype.hasOwnProperty.call(buttonData, key) &&
 			// Make sure it's an object (not a primitive value)
@@ -49,6 +33,28 @@ export function processButtonStyles(buttonData: Record<string, any>, allFiles: a
 			!processedButtonVariants.has(keyLower)
 		);
 	});
+
+	// Define button states for processing
+	const buttonStates = ['default', 'hover', 'disabled'];
+
+	// Only add default state properties when there are other button variants
+	// This prevents adding default states when only primary button exists
+	if (buttonVariants.length > 0) {
+		buttonStates.forEach(state => {
+			if (buttonData.primary[state]) {
+				// Create the state object at root level if it doesn't exist
+				if (!buttonData[state]) {
+					buttonData[state] = {};
+				}
+
+				// For each property in the primary button state, create a CSS variable reference
+				for (const prop in buttonData.primary[state]) {
+					// Reference the property using a CSS var that points to the primary button value
+					buttonData[state][prop] = `var(--wp--custom--color--button--primary--${state}--${prop})`;
+				}
+			}
+		});
+	}
 
 	// Process each button variant as a separate file
 	for (const variantName of buttonVariants) {
