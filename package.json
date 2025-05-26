@@ -4,24 +4,22 @@
 	"description": "Generate WordPress theme.json from Figma variables",
 	"main": "code.js",
 	"scripts": {
-		"start": "10up-toolkit build --watch",
-		"build": "10up-toolkit build",
-		"format-js": "10up-toolkit format-js",
-		"lint-js": "10up-toolkit lint-js",
-		"lint-style": "10up-toolkit lint-style",
-		"test": "10up-toolkit test-unit-jest"
+		"build": "webpack",
+		"watch": "npm run build -- --watch"
 	},
 	"author": "",
 	"license": "",
 	"devDependencies": {
 		"@figma/plugin-typings": "^1.108.0",
 		"@types/node": "*",
-		"typescript": "*"
+		"ts-loader": "^9.5.2",
+		"typescript": "^5.8.3",
+		"webpack": "^5.99.9",
+		"webpack-cli": "^6.0.1"
 	},
 	"dependencies": {
 		"@figma/eslint-plugin-figma-plugins": "^0.16.1",
-		"@typescript-eslint/parser": "^6.21.0",
-		"10up-toolkit": "^6.4.0"
+		"@typescript-eslint/parser": "^6.21.0"
 	},
 	"10up-toolkit": {
 		"build": {
