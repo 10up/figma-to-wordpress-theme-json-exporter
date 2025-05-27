@@ -3,6 +3,7 @@ import { mergeCollectionData } from '../utils/index';
 import { processCollectionData, processCollectionModeData } from '../collection/index';
 import { processButtonStyles, clearProcessedButtonVariants } from '../button/index';
 import { getTypographyPresets } from '../typography/index';
+import { getColorPresets } from '../color/index';
 
 export async function exportToJSON(options: ExportOptions = {}) {
 	// Clear the set of processed button variants at the start of a new export
@@ -151,6 +152,15 @@ export async function exportToJSON(options: ExportOptions = {}) {
 		if (typographyPresets.length > 0) {
 			theme.settings.custom.typography = theme.settings.custom.typography || {};
 			theme.settings.custom.typography.presets = typographyPresets;
+		}
+	}
+
+	// Add color presets if requested
+	if (options.generateColorPresets) {
+		const colorPresets = await getColorPresets();
+		if (colorPresets.length > 0) {
+			theme.settings.color = theme.settings.color || {};
+			theme.settings.color.palette = colorPresets;
 		}
 	}
 

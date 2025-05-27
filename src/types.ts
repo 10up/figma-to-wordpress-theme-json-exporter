@@ -1,6 +1,7 @@
 // Interface for export options
 export interface ExportOptions {
 	generateTypography?: boolean;
+	generateColorPresets?: boolean;
 	baseTheme?: any;
 }
 

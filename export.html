@@ -315,6 +315,10 @@
 		<input type="checkbox" id="generate-typography" />
 		<label for="generate-typography">Generate typography presets from text styles</label>
 	  </div>
+	  <div class="option-row">
+		<input type="checkbox" id="generate-color-presets" />
+		<label for="generate-color-presets">Generate color presets from color variables</label>
+	  </div>
 	  <div class="file-upload">
 		<label class="file-upload-label">Base theme.json</label>
 		<div class="file-upload-row">
@@ -524,8 +528,9 @@
 	});
 
 	document.getElementById("export").addEventListener("click", () => {
-	  // Get the state of the typography checkbox
+	  // Get the state of the checkboxes
 	  const generateTypography = document.getElementById("generate-typography").checked;
+	  const generateColorPresets = document.getElementById("generate-color-presets").checked;
 	  
 	  // Pass the options to the plugin
 	  parent.postMessage({ 
@@ -533,6 +538,7 @@
 		  type: "EXPORT",
 		  options: {
 			generateTypography,
+			generateColorPresets,
 			baseTheme
 		  }
 		} 

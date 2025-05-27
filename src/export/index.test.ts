@@ -343,6 +343,96 @@ describe('Export Functions', () => {
 			expect(call.files[0].body.settings.custom.typography).toBeUndefined();
 		});
 
+		it('should generate color presets when requested', async () => {
+			const collections = [
+				{
+					name: 'Color',
+					modes: [{ modeId: 'mode1', name: 'Default' }],
+					variableIds: ['color-var1', 'color-var2']
+				}
+			];
+
+			mockFigma.variables.getLocalVariableCollectionsAsync.mockResolvedValue(collections);
+			
+			// Mock the variables for both the main export and color presets
+			// The export function will call getVariableByIdAsync multiple times
+			mockFigma.variables.getVariableByIdAsync
+				.mockResolvedValue({
+					name: 'primary',
+					resolvedType: 'COLOR',
+					valuesByMode: { mode1: { r: 1, g: 0, b: 0, a: 1 } }
+				});
+
+			await exportToJSON({ generateColorPresets: true });
+
+			const call = mockFigma.ui.postMessage.mock.calls[0][0];
+			expect(call.files[0].body.settings.color).toBeDefined();
+			expect(call.files[0].body.settings.color.palette).toHaveLength(2);
+			expect(call.files[0].body.settings.color.palette[0]).toEqual({
+				name: 'Primary',
+				slug: 'primary',
+				color: 'var(--wp--custom--color--primary)'
+			});
+		});
+
+		it('should handle empty color presets', async () => {
+			mockFigma.variables.getLocalVariableCollectionsAsync.mockResolvedValue([]);
+
+			await exportToJSON({ generateColorPresets: true });
+
+			const call = mockFigma.ui.postMessage.mock.calls[0][0];
+			expect(call.files[0].body.settings.color).toBeUndefined();
+		});
+
+		it('should generate color presets with variable aliases', async () => {
+			const collections = [
+				{
+					name: 'Primitives',
+					modes: [{ modeId: 'prim', name: 'Default' }],
+					variableIds: ['prim-var']
+				},
+				{
+					name: 'Color',
+					modes: [{ modeId: 'color', name: 'Default' }],
+					variableIds: ['color-var']
+				}
+			];
+
+			mockFigma.variables.getLocalVariableCollectionsAsync.mockResolvedValue(collections);
+			
+			// Mock the primitive variable (referenced by alias)
+			const primVariable = {
+				name: 'primitives/blue/500',
+				resolvedType: 'COLOR',
+				valuesByMode: { prim: { r: 0.2, g: 0.4, b: 0.8, a: 1 } }
+			};
+
+			// Mock the color variable (alias to primitive)
+			const colorVariable = {
+				name: 'primary',
+				resolvedType: 'COLOR',
+				valuesByMode: { color: { type: 'VARIABLE_ALIAS', id: 'prim-var' } }
+			};
+
+			mockFigma.variables.getVariableByIdAsync
+				.mockImplementation((id: string) => {
+					if (id === 'prim-var') return Promise.resolve(primVariable);
+					if (id === 'color-var') return Promise.resolve(colorVariable);
+					return Promise.resolve(null);
+				});
+
+			await exportToJSON({ generateColorPresets: true });
+
+			const call = mockFigma.ui.postMessage.mock.calls[0][0];
+			expect(call.files[0].body.settings.color).toBeDefined();
+			expect(call.files[0].body.settings.color.palette).toHaveLength(1);
+			expect(call.files[0].body.settings.color.palette[0]).toEqual({
+				name: 'Primary',
+				slug: 'primary',
+				color: 'var(--wp--custom--color--primary)'
+			});
+		});
+
 		it('should handle multiple collections of different types', async () => {
 			const collections = [
 				{
