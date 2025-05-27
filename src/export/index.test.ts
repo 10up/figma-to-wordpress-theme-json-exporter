@@ -481,5 +481,113 @@ describe('Export Functions', () => {
 			expect(customSettings.color).toBeDefined(); // From color collection
 			expect(customSettings.spacing).toBeDefined(); // From spacing collection
 		});
+
+		it('should generate spacing presets when requested', async () => {
+			const collections = [
+				{
+					name: 'Spacing',
+					modes: [{ modeId: 'mode1', name: 'Default' }],
+					variableIds: ['spacing-var1', 'spacing-var2']
+				}
+			];
+
+			mockFigma.variables.getLocalVariableCollectionsAsync.mockResolvedValue(collections);
+			
+			// Mock the variables for both the main export and spacing presets
+			mockFigma.variables.getVariableByIdAsync
+				.mockResolvedValue({
+					name: 'spacing/base',
+					resolvedType: 'FLOAT',
+					valuesByMode: { mode1: 16 }
+				});
+
+			await exportToJSON({ generateSpacingPresets: true });
+
+			const call = mockFigma.ui.postMessage.mock.calls[0][0];
+			expect(call.files[0].body.settings.spacing).toBeDefined();
+			expect(call.files[0].body.settings.spacing.spacingSizes).toHaveLength(2);
+			expect(call.files[0].body.settings.spacing.spacingSizes[0]).toEqual({
+				name: 'Base',
+				slug: 'base',
+				size: 'var(--wp--custom--spacing--base)'
+			});
+		});
+
+		it('should handle empty spacing presets', async () => {
+			mockFigma.variables.getLocalVariableCollectionsAsync.mockResolvedValue([]);
+
+			await exportToJSON({ generateSpacingPresets: true });
+
+			const call = mockFigma.ui.postMessage.mock.calls[0][0];
+			expect(call.files[0].body.settings.spacing).toBeUndefined();
+		});
+
+		it('should generate spacing presets from Spacing and Primitives collections only', async () => {
+			const collections = [
+				{
+					name: 'Primitives',
+					modes: [{ modeId: 'mode1', name: 'Default' }],
+					variableIds: ['spacing-var', 'color-var']
+				},
+				{
+					name: 'Spacing',
+					modes: [{ modeId: 'mode2', name: 'Default' }],
+					variableIds: ['base-var']
+				},
+				{
+					name: 'Layout',
+					modes: [{ modeId: 'mode3', name: 'Default' }],
+					variableIds: ['gap-var']
+				}
+			];
+
+			mockFigma.variables.getLocalVariableCollectionsAsync.mockResolvedValue(collections);
+			
+			mockFigma.variables.getVariableByIdAsync
+				.mockImplementation((id: string) => {
+					if (id === 'spacing-var') {
+						return Promise.resolve({
+							name: 'spacing/primitive',
+							resolvedType: 'FLOAT',
+							valuesByMode: { mode1: 8 }
+						});
+					}
+					if (id === 'color-var') {
+						return Promise.resolve({
+							name: 'color/primary',
+							resolvedType: 'FLOAT',
+							valuesByMode: { mode1: 255 }
+						});
+					}
+					if (id === 'base-var') {
+						return Promise.resolve({
+							name: 'base',
+							resolvedType: 'FLOAT',
+							valuesByMode: { mode2: 16 }
+						});
+					}
+					if (id === 'gap-var') {
+						return Promise.resolve({
+							name: 'gap/large',
+							resolvedType: 'FLOAT',
+							valuesByMode: { mode3: 24 }
+						});
+					}
+					return Promise.resolve(null);
+				});
+
+			await exportToJSON({ generateSpacingPresets: true });
+
+			const call = mockFigma.ui.postMessage.mock.calls[0][0];
+			expect(call.files[0].body.settings.spacing).toBeDefined();
+			expect(call.files[0].body.settings.spacing.spacingSizes).toHaveLength(2);
+			
+			const spacingSizes = call.files[0].body.settings.spacing.spacingSizes;
+			expect(spacingSizes.map((s: any) => s.name)).toEqual(['Base', 'Primitive']);
+			expect(spacingSizes.map((s: any) => s.size)).toEqual([
+				'var(--wp--custom--spacing--base)',
+				'var(--wp--custom--spacing--primitive)'
+			]);
+		});
 	});
 }); 

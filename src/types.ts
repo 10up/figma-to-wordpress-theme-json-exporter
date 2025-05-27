@@ -2,6 +2,7 @@
 export interface ExportOptions {
 	generateTypography?: boolean;
 	generateColorPresets?: boolean;
+	generateSpacingPresets?: boolean;
 	baseTheme?: any;
 }
 

@@ -4,6 +4,7 @@ import { processCollectionData, processCollectionModeData } from '../collection/
 import { processButtonStyles, clearProcessedButtonVariants } from '../button/index';
 import { getTypographyPresets } from '../typography/index';
 import { getColorPresets } from '../color/index';
+import { getSpacingPresets } from '../spacing/index';
 
 export async function exportToJSON(options: ExportOptions = {}) {
 	// Clear the set of processed button variants at the start of a new export
@@ -161,6 +162,15 @@ export async function exportToJSON(options: ExportOptions = {}) {
 		if (colorPresets.length > 0) {
 			theme.settings.color = theme.settings.color || {};
 			theme.settings.color.palette = colorPresets;
+		}
+	}
+
+	// Add spacing presets if requested
+	if (options.generateSpacingPresets) {
+		const spacingPresets = await getSpacingPresets();
+		if (spacingPresets.length > 0) {
+			theme.settings.spacing = theme.settings.spacing || {};
+			theme.settings.spacing.spacingSizes = spacingPresets;
 		}
 	}
 

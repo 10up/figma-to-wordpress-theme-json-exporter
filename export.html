@@ -319,6 +319,10 @@
 		<input type="checkbox" id="generate-color-presets" />
 		<label for="generate-color-presets">Generate color presets from color variables</label>
 	  </div>
+	  <div class="option-row">
+		<input type="checkbox" id="generate-spacing-presets" />
+		<label for="generate-spacing-presets">Generate spacing presets from spacing variables</label>
+	  </div>
 	  <div class="file-upload">
 		<label class="file-upload-label">Base theme.json</label>
 		<div class="file-upload-row">
@@ -531,6 +535,7 @@
 	  // Get the state of the checkboxes
 	  const generateTypography = document.getElementById("generate-typography").checked;
 	  const generateColorPresets = document.getElementById("generate-color-presets").checked;
+	  const generateSpacingPresets = document.getElementById("generate-spacing-presets").checked;
 	  
 	  // Pass the options to the plugin
 	  parent.postMessage({ 
@@ -539,6 +544,7 @@
 		  options: {
 			generateTypography,
 			generateColorPresets,
+			generateSpacingPresets,
 			baseTheme
 		  }
 		} 
