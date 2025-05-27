@@ -158,7 +158,7 @@ export async function exportToJSON(options: ExportOptions = {}) {
 
 	// Add color presets if requested
 	if (options.generateColorPresets) {
-		const colorPresets = await getColorPresets();
+		const colorPresets = await getColorPresets(options.selectedColors);
 		if (colorPresets.length > 0) {
 			theme.settings.color = theme.settings.color || {};
 			theme.settings.color.palette = colorPresets;

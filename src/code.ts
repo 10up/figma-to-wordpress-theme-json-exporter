@@ -2,6 +2,7 @@ console.clear();
 
 import { ExportOptions } from './types';
 import { exportToJSON } from './export/index';
+import { getAllColorPresets } from './color/index';
 
 figma.ui.onmessage = async (e) => {
 	console.log("code received message", e);
@@ -9,6 +10,20 @@ figma.ui.onmessage = async (e) => {
 		// Extract options from the message
 		const options: ExportOptions = e.options || {};
 		await exportToJSON(options);
+	} else if (e.type === "GET_COLOR_PRESETS") {
+		// Get all available color presets for the UI
+		try {
+			const colorPresets = await getAllColorPresets();
+			figma.ui.postMessage({
+				type: "COLOR_PRESETS_RESULT",
+				colorPresets
+			});
+		} catch (error) {
+			figma.ui.postMessage({
+				type: "COLOR_PRESETS_RESULT",
+				error: error instanceof Error ? error.message : "Failed to get color presets"
+			});
+		}
 	} else if (e.type === "RESIZE") {
 		// Handle resize message from the UI
 		if (e.width && e.height) {

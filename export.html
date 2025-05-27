@@ -296,6 +296,179 @@
 	  display: none;
 	  cursor: nwse-resize;
 	}
+
+	/* Modal styles */
+	.modal-overlay {
+	  position: fixed;
+	  top: 0;
+	  left: 0;
+	  width: 100%;
+	  height: 100%;
+	  background-color: rgba(0, 0, 0, 0.5);
+	  z-index: 1000;
+	  display: none;
+	  align-items: center;
+	  justify-content: center;
+	}
+
+	.modal {
+	  background-color: var(--figma-color-bg);
+	  border-radius: 8px;
+	  width: 90%;
+	  max-width: 600px;
+	  max-height: 80%;
+	  display: flex;
+	  flex-direction: column;
+	  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+	}
+
+	.modal-header {
+	  padding: var(--spacing);
+	  border-bottom: 1px solid var(--figma-color-border);
+	  display: flex;
+	  justify-content: space-between;
+	  align-items: center;
+	}
+
+	.modal-title {
+	  font-weight: bold;
+	  font-size: 1.1rem;
+	  margin: 0;
+	}
+
+	.modal-close {
+	  background: none;
+	  border: none;
+	  font-size: 1.2rem;
+	  cursor: pointer;
+	  color: var(--figma-color-text-secondary);
+	  padding: 0;
+	  width: 24px;
+	  height: 24px;
+	  display: flex;
+	  align-items: center;
+	  justify-content: center;
+	}
+
+	.modal-close:hover {
+	  color: var(--figma-color-text);
+	}
+
+	.modal-body {
+	  padding: var(--spacing);
+	  overflow-y: auto;
+	  flex: 1;
+	}
+
+	.modal-footer {
+	  padding: var(--spacing);
+	  border-top: 1px solid var(--figma-color-border);
+	  display: flex;
+	  gap: var(--spacing);
+	  justify-content: flex-end;
+	}
+
+	.color-grid {
+	  display: grid;
+	  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+	  gap: var(--spacing);
+	}
+
+	.color-collection {
+	  margin-bottom: calc(var(--spacing) * 1.5);
+	}
+
+	.collection-header {
+	  font-weight: bold;
+	  margin-bottom: calc(var(--spacing) / 2);
+	  color: var(--figma-color-text);
+	  display: flex;
+	  align-items: center;
+	  gap: calc(var(--spacing) / 2);
+	}
+
+	.collection-toggle {
+	  font-size: 0.8rem;
+	  padding: calc(var(--spacing) / 4) calc(var(--spacing) / 2);
+	  background-color: var(--figma-color-bg-secondary);
+	  border: 1px solid var(--figma-color-border);
+	  border-radius: 4px;
+	  cursor: pointer;
+	}
+
+	.collection-toggle:hover {
+	  background-color: var(--figma-color-bg-hover);
+	}
+
+	.color-item {
+	  display: flex;
+	  align-items: center;
+	  gap: calc(var(--spacing) / 2);
+	  padding: calc(var(--spacing) / 2);
+	  border: 1px solid var(--figma-color-border);
+	  border-radius: 4px;
+	  cursor: pointer;
+	  transition: background-color 0.2s;
+	}
+
+	.color-item:hover {
+	  background-color: var(--figma-color-bg-hover);
+	}
+
+	.color-item.selected {
+	  background-color: var(--figma-color-bg-selected);
+	  border-color: var(--figma-color-border-selected);
+	}
+
+	.color-preview {
+	  width: 24px;
+	  height: 24px;
+	  border-radius: 4px;
+	  border: 1px solid var(--figma-color-border);
+	  flex-shrink: 0;
+	}
+
+	.color-info {
+	  flex: 1;
+	  min-width: 0;
+	}
+
+	.color-name {
+	  font-weight: 500;
+	  font-size: 0.9rem;
+	  margin-bottom: 2px;
+	}
+
+	.color-slug {
+	  font-size: 0.8rem;
+	  color: var(--figma-color-text-secondary);
+	  font-family: monospace;
+	}
+
+	.color-checkbox {
+	  flex-shrink: 0;
+	}
+
+	.customize-button {
+	  background-color: var(--figma-color-bg-secondary);
+	  color: var(--figma-color-text);
+	  font-size: 0.8rem;
+	  padding: calc(var(--spacing) / 2);
+	  margin-left: calc(var(--spacing) / 2);
+	}
+
+	.customize-button:hover {
+	  background-color: var(--figma-color-bg-hover);
+	}
+
+	.selection-summary {
+	  background-color: var(--figma-color-bg-secondary);
+	  padding: calc(var(--spacing) / 2);
+	  border-radius: 4px;
+	  margin-bottom: var(--spacing);
+	  font-size: 0.9rem;
+	  color: var(--figma-color-text-secondary);
+	}
   </style>
   <main>
 	<div class="info-text">
@@ -318,6 +491,7 @@
 	  <div class="option-row">
 		<input type="checkbox" id="generate-color-presets" />
 		<label for="generate-color-presets">Generate color presets from color variables</label>
+		<button type="button" class="customize-button" id="customize-colors" disabled>Customize</button>
 	  </div>
 	  <div class="option-row">
 		<input type="checkbox" id="generate-spacing-presets" />
@@ -349,11 +523,36 @@
   </main>
   <div class="resize-handle" id="resize-handle"></div>
   <div class="resize-overlay" id="resize-overlay"></div>
+  
+  <!-- Color Customization Modal -->
+  <div class="modal-overlay" id="color-modal-overlay">
+	<div class="modal">
+	  <div class="modal-header">
+		<h3 class="modal-title">Customize Color Presets</h3>
+		<button class="modal-close" id="close-color-modal">&times;</button>
+	  </div>
+	  <div class="modal-body">
+		<div class="selection-summary" id="selection-summary">
+		  Loading colors...
+		</div>
+		<div id="color-collections-container">
+		  <!-- Color collections will be populated here -->
+		</div>
+	  </div>
+	  <div class="modal-footer">
+		<button type="button" class="copy-button" id="select-all-colors">Select All</button>
+		<button type="button" class="copy-button" id="select-none-colors">Select None</button>
+		<button type="button" id="apply-color-selection">Apply Selection</button>
+	  </div>
+	</div>
+  </div>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
   <script>
 	let currentFiles = [];
 	let baseTheme = null;
+	let allColorPresets = [];
+	let selectedColorIds = [];
 
 	// Setup resize functionality
 	const resizeHandle = document.getElementById('resize-handle');
@@ -410,7 +609,15 @@
 	}
 
 	window.onmessage = ({ data: { pluginMessage } }) => {
-	  if (pluginMessage.type === "EXPORT_RESULT") {
+	  if (pluginMessage.type === "COLOR_PRESETS_RESULT") {
+		if (pluginMessage.error) {
+		  console.error("Error getting color presets:", pluginMessage.error);
+		  return;
+		}
+		
+		allColorPresets = pluginMessage.colorPresets || [];
+		populateColorModal();
+	  } else if (pluginMessage.type === "EXPORT_RESULT") {
 		if (pluginMessage.error) {
 		  // Display error message
 		  const filesContainer = document.getElementById('files-container');
@@ -545,7 +752,8 @@
 			generateTypography,
 			generateColorPresets,
 			generateSpacingPresets,
-			baseTheme
+			baseTheme,
+			selectedColors: generateColorPresets ? selectedColorIds : undefined
 		  }
 		} 
 	  }, "*");
@@ -601,5 +809,235 @@
 	  zip.generateAsync({ type: "blob" }).then(function(content) {
 		saveAs(content, "wordpress-theme-files.zip");
 	  });
+	}
+
+	// Color customization functionality
+	const colorPresetsCheckbox = document.getElementById("generate-color-presets");
+	const customizeButton = document.getElementById("customize-colors");
+	const colorModal = document.getElementById("color-modal-overlay");
+	const closeModalButton = document.getElementById("close-color-modal");
+	const selectAllButton = document.getElementById("select-all-colors");
+	const selectNoneButton = document.getElementById("select-none-colors");
+	const applySelectionButton = document.getElementById("apply-color-selection");
+
+	// Enable/disable customize button based on checkbox state
+	colorPresetsCheckbox.addEventListener("change", () => {
+	  customizeButton.disabled = !colorPresetsCheckbox.checked;
+	  if (!colorPresetsCheckbox.checked) {
+		selectedColorIds = [];
+	  }
+	});
+
+	// Open modal and load color presets
+	customizeButton.addEventListener("click", () => {
+	  colorModal.style.display = "flex";
+	  if (allColorPresets.length === 0) {
+		// Request color presets from the plugin
+		parent.postMessage({ 
+		  pluginMessage: { type: "GET_COLOR_PRESETS" } 
+		}, "*");
+	  } else {
+		populateColorModal();
+	  }
+	});
+
+	// Close modal
+	closeModalButton.addEventListener("click", closeColorModal);
+	colorModal.addEventListener("click", (e) => {
+	  if (e.target === colorModal) {
+		closeColorModal();
+	  }
+	});
+
+	function closeColorModal() {
+	  colorModal.style.display = "none";
+	}
+
+	// Select all colors
+	selectAllButton.addEventListener("click", () => {
+	  selectedColorIds = allColorPresets.map(preset => preset.id);
+	  updateColorSelection();
+	  updateSelectionSummary();
+	});
+
+	// Select no colors
+	selectNoneButton.addEventListener("click", () => {
+	  selectedColorIds = [];
+	  updateColorSelection();
+	  updateSelectionSummary();
+	});
+
+	// Apply selection and close modal
+	applySelectionButton.addEventListener("click", () => {
+	  closeColorModal();
+	});
+
+	function populateColorModal() {
+	  const container = document.getElementById("color-collections-container");
+	  container.innerHTML = "";
+
+	  if (allColorPresets.length === 0) {
+		container.innerHTML = '<div class="empty-state">No color variables found in your Figma file.</div>';
+		return;
+	  }
+
+	  // Group colors by collection
+	  const collections = {};
+	  allColorPresets.forEach(preset => {
+		if (!collections[preset.collectionName]) {
+		  collections[preset.collectionName] = [];
+		}
+		collections[preset.collectionName].push(preset);
+	  });
+
+	  // If no colors are selected yet, select all by default
+	  if (selectedColorIds.length === 0) {
+		selectedColorIds = allColorPresets.map(preset => preset.id);
+	  }
+
+	  // Create collection sections
+	  Object.keys(collections).sort().forEach(collectionName => {
+		const collectionDiv = document.createElement("div");
+		collectionDiv.className = "color-collection";
+
+		const headerDiv = document.createElement("div");
+		headerDiv.className = "collection-header";
+		
+		const titleSpan = document.createElement("span");
+		titleSpan.textContent = collectionName;
+		
+		const toggleButton = document.createElement("button");
+		toggleButton.className = "collection-toggle";
+		toggleButton.textContent = "Toggle All";
+		toggleButton.addEventListener("click", () => toggleCollection(collectionName));
+		
+		headerDiv.appendChild(titleSpan);
+		headerDiv.appendChild(toggleButton);
+
+		const colorsDiv = document.createElement("div");
+		colorsDiv.className = "color-grid";
+
+		collections[collectionName].forEach(preset => {
+		  const colorItem = createColorItem(preset);
+		  colorsDiv.appendChild(colorItem);
+		});
+
+		collectionDiv.appendChild(headerDiv);
+		collectionDiv.appendChild(colorsDiv);
+		container.appendChild(collectionDiv);
+	  });
+
+	  updateColorSelection();
+	  updateSelectionSummary();
+	}
+
+	function createColorItem(preset) {
+	  const item = document.createElement("div");
+	  item.className = "color-item";
+	  item.dataset.colorId = preset.id;
+
+	  const preview = document.createElement("div");
+	  preview.className = "color-preview";
+	  if (preset.resolvedColor) {
+		preview.style.backgroundColor = preset.resolvedColor;
+	  } else {
+		preview.style.backgroundColor = "#ccc";
+		preview.style.backgroundImage = "linear-gradient(45deg, #ccc 25%, transparent 25%), linear-gradient(-45deg, #ccc 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #ccc 75%), linear-gradient(-45deg, transparent 75%, #ccc 75%)";
+		preview.style.backgroundSize = "8px 8px";
+		preview.style.backgroundPosition = "0 0, 0 4px, 4px -4px, -4px 0px";
+	  }
+
+	  const info = document.createElement("div");
+	  info.className = "color-info";
+
+	  const name = document.createElement("div");
+	  name.className = "color-name";
+	  name.textContent = preset.name;
+
+	  const slug = document.createElement("div");
+	  slug.className = "color-slug";
+	  slug.textContent = preset.slug;
+
+	  info.appendChild(name);
+	  info.appendChild(slug);
+
+	  const checkbox = document.createElement("input");
+	  checkbox.type = "checkbox";
+	  checkbox.className = "color-checkbox";
+	  checkbox.checked = selectedColorIds.includes(preset.id);
+	  checkbox.addEventListener("change", () => {
+		if (checkbox.checked) {
+		  if (!selectedColorIds.includes(preset.id)) {
+			selectedColorIds.push(preset.id);
+		  }
+		} else {
+		  selectedColorIds = selectedColorIds.filter(id => id !== preset.id);
+		}
+		updateColorSelection();
+		updateSelectionSummary();
+	  });
+
+	  item.appendChild(preview);
+	  item.appendChild(info);
+	  item.appendChild(checkbox);
+
+	  // Make the whole item clickable
+	  item.addEventListener("click", (e) => {
+		if (e.target !== checkbox) {
+		  checkbox.checked = !checkbox.checked;
+		  checkbox.dispatchEvent(new Event("change"));
+		}
+	  });
+
+	  return item;
+	}
+
+	function updateColorSelection() {
+	  const colorItems = document.querySelectorAll(".color-item");
+	  colorItems.forEach(item => {
+		const colorId = item.dataset.colorId;
+		const checkbox = item.querySelector(".color-checkbox");
+		const isSelected = selectedColorIds.includes(colorId);
+		
+		checkbox.checked = isSelected;
+		item.classList.toggle("selected", isSelected);
+	  });
+	}
+
+	function updateSelectionSummary() {
+	  const summary = document.getElementById("selection-summary");
+	  const total = allColorPresets.length;
+	  const selected = selectedColorIds.length;
+	  
+	  if (total === 0) {
+		summary.textContent = "No colors available";
+	  } else if (selected === total) {
+		summary.textContent = `All ${total} colors selected`;
+	  } else {
+		summary.textContent = `${selected} of ${total} colors selected`;
+	  }
+	}
+
+	function toggleCollection(collectionName) {
+	  const collectionColors = allColorPresets.filter(preset => preset.collectionName === collectionName);
+	  const collectionIds = collectionColors.map(preset => preset.id);
+	  
+	  // Check if all colors in this collection are selected
+	  const allSelected = collectionIds.every(id => selectedColorIds.includes(id));
+	  
+	  if (allSelected) {
+		// Deselect all colors in this collection
+		selectedColorIds = selectedColorIds.filter(id => !collectionIds.includes(id));
+	  } else {
+		// Select all colors in this collection
+		collectionIds.forEach(id => {
+		  if (!selectedColorIds.includes(id)) {
+			selectedColorIds.push(id);
+		  }
+		});
+	  }
+	  
+	  updateColorSelection();
+	  updateSelectionSummary();
 	}
   </script>
