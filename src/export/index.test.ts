@@ -197,6 +197,69 @@ describe('Export Functions', () => {
 			});
 		});
 
+		it('should handle color collection with multiple modes and button styles in additional modes', async () => {
+			const collections = [
+				{
+					name: 'Color',
+					modes: [
+						{ modeId: 'light', name: 'Light' },
+						{ modeId: 'dark', name: 'Dark' }
+					],
+					variableIds: ['button-var']
+				}
+			];
+
+			mockFigma.variables.getLocalVariableCollectionsAsync.mockResolvedValue(collections);
+			
+			// Mock button variable for both modes
+			mockFigma.variables.getVariableByIdAsync
+				.mockResolvedValue({
+					name: 'button/primary/default/background',
+					resolvedType: 'COLOR',
+					valuesByMode: { 
+						light: { r: 1, g: 0, b: 0 },
+						dark: { r: 0, g: 1, b: 0 }
+					}
+				});
+
+			await exportToJSON();
+
+			const call = mockFigma.ui.postMessage.mock.calls[0][0];
+			expect(call.files).toHaveLength(3); // Main theme + 2 section files
+			
+			// Check that button styles are processed for both modes
+			expect(call.files[0].body.settings.custom.color).toEqual({
+				button: {
+					primary: {
+						default: {
+							background: "#ff0000"
+						}
+					}
+				}
+			});
+
+			// Check section files have button data
+			expect(call.files[1].body.settings.custom.color).toEqual({
+				button: {
+					primary: {
+						default: {
+							background: "#ff0000"
+						}
+					}
+				}
+			});
+
+			expect(call.files[2].body.settings.custom.color).toEqual({
+				button: {
+					primary: {
+						default: {
+							background: "#00ff00"
+						}
+					}
+				}
+			});
+		});
+
 		it('should handle regular collection (non-color, non-primitives)', async () => {
 			const collections = [
 				{

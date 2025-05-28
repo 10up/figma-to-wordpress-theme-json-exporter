@@ -16,18 +16,14 @@ jobs:
       # Required to put a comment into the pull-request
       pull-requests: write
 
-    strategy:
-      matrix:
-        node-version: [18.x, 20.x]
-
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Use Node.js ${{ matrix.node-version }}
+    - name: Use Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: ${{ matrix.node-version }}
+        node-version: 20
         cache: 'npm'
 
     - name: Install dependencies
@@ -38,7 +34,6 @@ jobs:
 
     - name: Report Coverage
       uses: davelosert/vitest-coverage-report-action@v2
-      if: always() && matrix.node-version == '18.x'
       with:
         name: 'Coverage Report'
         # Set reportOnFailure to true in vitest config to generate reports even if tests fail
@@ -47,7 +42,6 @@ jobs:
 
     - name: Upload coverage to artifacts
       uses: actions/upload-artifact@v4
-      if: matrix.node-version == '18.x'
       with:
         name: coverage-report
         path: coverage/
