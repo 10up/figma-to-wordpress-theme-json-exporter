@@ -1,6 +1,6 @@
 # WordPress Theme.json Exporter for Figma
 
-[![MIT License](https://img.shields.io/github/license/10up/ui-kit-figma-variable-export.svg)](https://github.com/10up/ui-kit-figma-variable-export/blob/develop/LICENSE.md)
+[![Support Level](https://img.shields.io/badge/support-beta-blueviolet.svg)](#support-level) [![MIT License](https://img.shields.io/github/license/10up/ui-kit-figma-variable-export.svg)](https://github.com/10up/ui-kit-figma-variable-export/blob/develop/LICENSE.md)
 
 > This Figma plugin converts Figma design tokens/variables into WordPress theme.json format, placing all variables under the `settings.custom` section according to WordPress standards.
 
@@ -192,9 +192,13 @@ This plugin uses TypeScript and the Figma Plugin API. To develop:
 
 The plugin will automatically transpile TypeScript to JavaScript.
 
+## Support Level
+
+**Beta:** This project is quite new and we're not sure what our ongoing support level for this will be.  Bug reports, feature requests, questions, and pull requests are welcome.  If you like this project please let us know, but be cautious using this in a Production environment!
+
 ## Changelog
 
-A complete listing of all notable changes to ClassifAI are documented in [CHANGELOG.md](https://github.com/10up/ui-kit-figma-variable-export/blob/develop/CHANGELOG.md).
+A complete listing of all notable changes to this project are documented in [CHANGELOG.md](https://github.com/10up/ui-kit-figma-variable-export/blob/develop/CHANGELOG.md).
 
 ## Contributing
 
