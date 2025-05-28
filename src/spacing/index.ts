@@ -1,4 +1,3 @@
-import { isVariableAlias } from '../utils/index';
 import { buildCssVarReference } from '../utils/css';
 
 interface SpacingPreset {

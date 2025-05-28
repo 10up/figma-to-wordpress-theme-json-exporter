@@ -24,7 +24,7 @@ function nameToSlug(name: string): string {
  */
 function nameToLabel(name: string): string {
 	return name
-		.split(/[\/\-_\s]+/)
+		.split(/[/\-_\s]+/)
 		.map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
 		.join(' ');
 }

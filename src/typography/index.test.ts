@@ -275,15 +275,15 @@ describe('Typography Functions', () => {
 
 			const result = await getTypographyPresets();
 			expect(result).toHaveLength(1);
-			   expect(result[0]).toEqual({
-    slug: 'heading-1',
-    name: 'Heading 1',
-    selector: 'h1',
-    fontFamily: 'var(--wp--preset--font-family--arial)',
-    fontSize: '32px',
-    fontWeight: 700,
-    lineHeight: '1.2'
-   });
+			expect(result[0]).toEqual({
+				slug: 'heading-1',
+				name: 'Heading 1',
+				selector: 'h1',
+				fontFamily: 'var(--wp--preset--font-family--arial)',
+				fontSize: '32px',
+				fontWeight: 700,
+				lineHeight: '1.2'
+			});
 		});
 
 		it('should add selector for heading styles', async () => {
