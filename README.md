@@ -1,5 +1,7 @@
 # WordPress Theme.json Exporter for Figma
 
+[![MIT License](https://img.shields.io/github/license/10up/ui-kit-figma-variable-export.svg)](https://github.com/10up/ui-kit-figma-variable-export/blob/develop/LICENSE.md)
+
 This Figma plugin converts Figma design tokens/variables into WordPress theme.json format, placing all variables under the `settings.custom` section according to WordPress standards.
 
 ## Features

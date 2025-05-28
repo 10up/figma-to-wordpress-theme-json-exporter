@@ -12,7 +12,7 @@
 		"test:watch": "vitest --watch"
 	},
 	"author": "",
-	"license": "",
+	"license": "MIT",
 	"devDependencies": {
 		"@figma/plugin-typings": "^1.108.0",
 		"@types/node": "*",
