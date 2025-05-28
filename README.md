@@ -200,6 +200,44 @@ The plugin will automatically transpile TypeScript to JavaScript.
 
 A complete listing of all notable changes to this project are documented in [CHANGELOG.md](https://github.com/10up/ui-kit-figma-variable-export/blob/develop/CHANGELOG.md).
 
+## Contributing with Changesets
+
+This project uses [Changesets](https://github.com/changesets/changesets) for version management and changelog generation. When contributing, you'll need to include a changeset with your pull request.
+
+### Adding a Changeset
+
+When you make changes that should be released, run:
+
+```bash
+npm run changeset
+```
+
+This will prompt you to:
+1. Select which packages should be bumped (for this single-package repo, select the main package)
+2. Choose the type of change (patch, minor, or major)
+3. Write a summary of your changes
+
+The changeset will be saved as a file in the `.changeset` directory and should be committed with your changes.
+
+### Types of Changes
+
+- **Patch** (0.0.X): Bug fixes, documentation updates, internal changes
+- **Minor** (0.X.0): New features, enhancements that don't break existing functionality  
+- **Major** (X.0.0): Breaking changes that require users to update their code
+
+### Changeset Requirements
+
+- All pull requests must include a changeset (except for changes that don't affect the published package)
+- The CI will automatically check for changesets and fail if one is missing
+- If your change doesn't warrant a release (e.g., updating README, tests, or CI), you can create an empty changeset by running `npm run changeset` and selecting no packages to bump
+
+### Release Process
+
+When changesets are merged to the main branch:
+1. A "Release" pull request will be automatically created
+2. This PR will update the version number and changelog
+3. When the Release PR is merged, the package will be automatically published to npm
+
 ## Contributing
 
 Please read [CODE_OF_CONDUCT.md](https://github.com/10up/ui-kit-figma-variable-export/blob/develop/CODE_OF_CONDUCT.md) for details on our code of conduct, [CONTRIBUTING.md](https://github.com/10up/ui-kit-figma-variable-export/blob/develop/CONTRIBUTING.md) for details on the process for submitting pull requests to us, and [CREDITS.md](https://github.com/10up/ui-kit-figma-variable-export/blob/develop/CREDITS.md) for a listing of maintainers, contributors, and libraries for this project.
