@@ -2,6 +2,24 @@
 	"name": "figma-theme-json-generator",
 	"version": "1.0.0",
 	"description": "Generate WordPress theme.json from Figma variables",
+	"homepage": "https://github.com/10up/ui-kit-figma-variable-export",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/10up/ui-kit-figma-variable-export.git"
+	},
+	"license": "MIT",
+	"contributors": [
+		{
+			"name": "Fabian Kägy",
+			"email": "fabian@10up.com",
+			"url": "https://github.com/fabiankaegy"
+		},
+		{
+			"name": "10up",
+			"email": "opensource@10up.com",
+			"url": "https://10up.com"
+		}
+	],
 	"main": "code.js",
 	"scripts": {
 		"build": "webpack",
@@ -11,8 +29,6 @@
 		"test:coverage": "vitest run --coverage",
 		"test:watch": "vitest --watch"
 	},
-	"author": "",
-	"license": "MIT",
 	"devDependencies": {
 		"@figma/plugin-typings": "^1.108.0",
 		"@types/node": "*",

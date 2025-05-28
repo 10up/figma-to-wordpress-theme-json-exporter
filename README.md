@@ -2,7 +2,7 @@
 
 [![MIT License](https://img.shields.io/github/license/10up/ui-kit-figma-variable-export.svg)](https://github.com/10up/ui-kit-figma-variable-export/blob/develop/LICENSE.md)
 
-This Figma plugin converts Figma design tokens/variables into WordPress theme.json format, placing all variables under the `settings.custom` section according to WordPress standards.
+> This Figma plugin converts Figma design tokens/variables into WordPress theme.json format, placing all variables under the `settings.custom` section according to WordPress standards.
 
 ## Features
 
@@ -191,3 +191,15 @@ This plugin uses TypeScript and the Figma Plugin API. To develop:
 3. Edit the code in `code.ts`
 
 The plugin will automatically transpile TypeScript to JavaScript.
+
+## Changelog
+
+A complete listing of all notable changes to ClassifAI are documented in [CHANGELOG.md](https://github.com/10up/ui-kit-figma-variable-export/blob/develop/CHANGELOG.md).
+
+## Contributing
+
+Please read [CODE_OF_CONDUCT.md](https://github.com/10up/ui-kit-figma-variable-export/blob/develop/CODE_OF_CONDUCT.md) for details on our code of conduct, [CONTRIBUTING.md](https://github.com/10up/ui-kit-figma-variable-export/blob/develop/CONTRIBUTING.md) for details on the process for submitting pull requests to us, and [CREDITS.md](https://github.com/10up/ui-kit-figma-variable-export/blob/develop/CREDITS.md) for a listing of maintainers, contributors, and libraries for this project.
+
+## Like what you see?
+
+<a href="http://10up.com/contact/"><img src="https://10up.com/uploads/2016/10/10up-Github-Banner.png" width="850" alt="Work with us at 10up"></a>
