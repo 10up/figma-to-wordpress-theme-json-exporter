@@ -5,23 +5,32 @@ All notable changes to this project will be documented in this file, per [the Ke
 ## [Unreleased] - TBD
 
 ## [1.1.2] - 2025-02-28
+
 ### Fixed
+
 - Ensure proper network access tagged.
 
 ## [1.1.1] - 2025-02-28
+
 ### Changed
+
 - Update docs.
 
 ### Fixed
+
 - Text style names, types, and linting issues.
 - Bug with empty string.
 
 ## [1.1.0] - 2025-02-26
+
 ## Added
+
 - Allow users to upload base `theme.json`.
 
 ## [1.0.0] - 2025-02-26
+
 ### Added
+
 - Initial private release.
 
 [Unreleased]: https://github.com/10up/ui-kit-figma-variable-export/compare/main...develop
