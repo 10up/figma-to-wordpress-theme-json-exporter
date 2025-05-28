@@ -6,6 +6,8 @@
 	"scripts": {
 		"build": "webpack",
 		"watch": "npm run build -- --watch",
+		"lint": "eslint src --ext .ts",
+		"lint:fix": "eslint src --ext .ts --fix",
 		"test": "vitest",
 		"test:run": "vitest run",
 		"test:coverage": "vitest run --coverage",
@@ -17,6 +19,7 @@
 		"@figma/plugin-typings": "^1.108.0",
 		"@types/node": "*",
 		"@vitest/coverage-v8": "^3.1.4",
+		"eslint": "^8.57.0",
 		"jsdom": "^26.1.0",
 		"ts-loader": "^9.5.2",
 		"typescript": "^5.8.3",
