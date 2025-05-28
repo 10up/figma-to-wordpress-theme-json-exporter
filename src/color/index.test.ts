@@ -363,6 +363,118 @@ describe('getAllColorPresets', () => {
 		mockFigma.variables.getVariableByIdAsync.mockReset();
 	});
 
+	it('should return empty array when no color variables exist', async () => {
+		mockFigma.variables.getLocalVariableCollectionsAsync.mockResolvedValue([
+			{
+				name: 'Typography',
+				modes: [{ modeId: 'mode1', name: 'Default' }],
+				variableIds: ['var1'],
+			},
+		]);
+
+		mockFigma.variables.getVariableByIdAsync.mockResolvedValue({
+			name: 'font-size',
+			resolvedType: 'FLOAT',
+			valuesByMode: {
+				mode1: 16,
+			},
+		});
+
+		const result = await getAllColorPresets();
+		expect(result).toEqual([]);
+	});
+
+	it('should get all color presets with resolved colors', async () => {
+		mockFigma.variables.getLocalVariableCollectionsAsync.mockResolvedValue([
+			{
+				name: 'Colors',
+				modes: [{ modeId: 'mode1', name: 'Default' }],
+				variableIds: ['var1', 'var2']
+			}
+		]);
+
+		mockFigma.variables.getVariableByIdAsync
+			.mockResolvedValueOnce({
+				name: 'primary',
+				resolvedType: 'COLOR',
+				valuesByMode: {
+					mode1: { r: 1, g: 0, b: 0 }
+				}
+			})
+			.mockResolvedValueOnce({
+				name: 'secondary',
+				resolvedType: 'COLOR',
+				valuesByMode: {
+					mode1: { type: 'VARIABLE_ALIAS', id: 'ref-var' }
+				}
+			})
+			.mockResolvedValueOnce({
+				name: 'primary',
+				resolvedType: 'COLOR',
+				valuesByMode: {
+					mode1: { r: 1, g: 0, b: 0 }
+				}
+			});
+
+		const result = await getAllColorPresets();
+
+		expect(result).toEqual([
+			{
+				id: 'var1',
+				name: 'Primary',
+				slug: 'primary',
+				color: 'var(--wp--custom--color--primary)',
+				collectionName: 'Colors',
+				resolvedColor: '#ff0000'
+			},
+			{
+				id: 'var2',
+				name: 'Secondary',
+				slug: 'secondary',
+				color: 'var(--wp--custom--color--secondary)',
+				collectionName: 'Colors',
+				resolvedColor: '#ff0000'
+			}
+		]);
+	});
+
+	it('should skip collections with no modes in getAllColorPresets', async () => {
+		mockFigma.variables.getLocalVariableCollectionsAsync.mockResolvedValue([
+			{
+				name: 'Colors',
+				modes: [], // No modes
+				variableIds: ['var1']
+			},
+			{
+				name: 'Valid Colors',
+				modes: [{ modeId: 'mode1', name: 'Default' }],
+				variableIds: ['var2']
+			}
+		]);
+
+		mockFigma.variables.getVariableByIdAsync
+			.mockResolvedValueOnce({
+				name: 'valid',
+				resolvedType: 'COLOR',
+				valuesByMode: {
+					mode1: { r: 0, g: 1, b: 0 }
+				}
+			});
+
+		const result = await getAllColorPresets();
+
+		expect(result).toEqual([
+			{
+				id: 'var2',
+				name: 'Valid',
+				slug: 'valid',
+				color: 'var(--wp--custom--color--valid)',
+				collectionName: 'Valid Colors',
+				resolvedColor: '#00ff00'
+			}
+		]);
+	});
+
 	it('should return color presets with collection info and resolved colors', async () => {
 		const mockColorCollection = {
 			name: 'Color',

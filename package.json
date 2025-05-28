@@ -24,6 +24,10 @@
 	"scripts": {
 		"build": "webpack",
 		"watch": "npm run build -- --watch",
+		"lint": "eslint src --ext .ts",
+		"lint:fix": "eslint src --ext .ts --fix",
+		"lint:types": "tsc --noEmit",
+		"lint:all": "npm run lint && npm run lint:types",
 		"test": "vitest",
 		"test:run": "vitest run",
 		"test:coverage": "vitest run --coverage",
@@ -32,7 +36,9 @@
 	"devDependencies": {
 		"@figma/plugin-typings": "^1.108.0",
 		"@types/node": "*",
+		"@typescript-eslint/eslint-plugin": "^6.21.0",
 		"@vitest/coverage-v8": "^3.1.4",
+		"eslint": "^8.57.0",
 		"jsdom": "^26.1.0",
 		"ts-loader": "^9.5.2",
 		"typescript": "^5.8.3",

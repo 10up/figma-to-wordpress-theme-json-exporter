@@ -24,7 +24,7 @@ export function processButtonStyles(buttonData: Record<string, any>, allFiles: a
 			keyLower !== 'primary' &&
 			// Match against our known button variant names (exact match or contains the variant name)
 			(knownButtonVariants.includes(keyLower) || 
-			 knownButtonVariants.some(variant => keyLower.includes(variant))) &&
+			knownButtonVariants.some((variant: string) => keyLower.includes(variant))) &&
 			// Only include if it's a direct property (not inherited)
 			Object.prototype.hasOwnProperty.call(buttonData, key) &&
 			// Make sure it's an object (not a primitive value)

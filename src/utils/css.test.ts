@@ -53,15 +53,15 @@ describe('buildWpCustomPropertyPath', () => {
 			.toBe('--wp--custom--color--button--primary--background');
 	});
 
-	  it('should convert camelCase parts to kebab-case', () => {
-   expect(buildWpCustomPropertyPath(['colorPalette', 'brandAccent']))
-    .toBe('--wp--custom--colorpalette--brandaccent');
-  });
+	it('should convert camelCase parts to kebab-case', () => {
+		expect(buildWpCustomPropertyPath(['colorPalette', 'brandAccent']))
+			.toBe('--wp--custom--colorpalette--brandaccent');
+	});
 
-	  it('should handle mixed case parts', () => {
-   expect(buildWpCustomPropertyPath(['ColorPalette', 'BrandAccent', 'HoverState']))
-    .toBe('--wp--custom--colorpalette--brandaccent--hoverstate');
-  });
+	it('should handle mixed case parts', () => {
+		expect(buildWpCustomPropertyPath(['ColorPalette', 'BrandAccent', 'HoverState']))
+			.toBe('--wp--custom--colorpalette--brandaccent--hoverstate');
+	});
 
 	it('should handle empty array', () => {
 		expect(buildWpCustomPropertyPath([])).toBe('--wp--custom--');
@@ -96,17 +96,17 @@ describe('buildCssVarReference', () => {
 			.toBe('var(--wp--custom--color--button--primary--background)');
 	});
 
-	  it('should convert camelCase parts to kebab-case', () => {
-   expect(buildCssVarReference(['colorPalette', 'brandAccent']))
-    .toBe('var(--wp--custom--colorpalette--brandaccent)');
-  });
+	it('should convert camelCase parts to kebab-case', () => {
+		expect(buildCssVarReference(['colorPalette', 'brandAccent']))
+			.toBe('var(--wp--custom--colorpalette--brandaccent)');
+	});
 
 	it('should handle empty array', () => {
 		expect(buildCssVarReference([])).toBe('var(--wp--custom--)');
 	});
 
-	  it('should handle mixed case parts', () => {
-   expect(buildCssVarReference(['FontSize', 'ExtraLarge']))
-    .toBe('var(--wp--custom--fontsize--extralarge)');
-  });
+	it('should handle mixed case parts', () => {
+		expect(buildCssVarReference(['FontSize', 'ExtraLarge']))
+			.toBe('var(--wp--custom--fontsize--extralarge)');
+	});
 }); 

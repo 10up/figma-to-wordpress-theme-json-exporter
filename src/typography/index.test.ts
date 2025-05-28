@@ -117,6 +117,28 @@ describe('Typography Functions', () => {
 			const result = await findFontFamilyVariable('Arial');
 			expect(result).toBe('var(--wp--preset--font-family--arial)');
 		});
+
+		it('should handle variables without valuesByMode', async () => {
+			const collections = [{
+				id: 'collection1',
+				name: 'Fonts',
+				modes: [{ modeId: 'mode1', name: 'Default' }],
+				variableIds: ['var1']
+			}];
+
+			mockFigma.variables.getLocalVariableCollectionsAsync.mockResolvedValue(collections);
+			mockFigma.variables.getVariablesByCollectionIdAsync.mockResolvedValue([{
+				id: 'var1',
+				name: 'font/family/primary'
+			}]);
+			mockFigma.variables.getVariableByIdAsync.mockResolvedValue({
+				id: 'var1',
+				valuesByMode: null
+			});
+
+			const result = await findFontFamilyVariable('Arial');
+			expect(result).toBe('var(--wp--preset--font-family--arial)');
+		});
 	});
 
 	describe('findFontSizeVariable', () => {
@@ -153,6 +175,28 @@ describe('Typography Functions', () => {
 
 		it('should handle errors gracefully', async () => {
 			mockFigma.variables.getLocalVariableCollectionsAsync.mockRejectedValue(new Error('API Error'));
+
+			const result = await findFontSizeVariable(24);
+			expect(result).toBeNull();
+		});
+
+		it('should handle font size variables without valuesByMode', async () => {
+			const collections = [{
+				id: 'collection1',
+				name: 'Typography',
+				modes: [{ modeId: 'mode1', name: 'Default' }],
+				variableIds: ['var1']
+			}];
+
+			mockFigma.variables.getLocalVariableCollectionsAsync.mockResolvedValue(collections);
+			mockFigma.variables.getVariablesByCollectionIdAsync.mockResolvedValue([{
+				id: 'var1',
+				name: 'font/size/large'
+			}]);
+			mockFigma.variables.getVariableByIdAsync.mockResolvedValue({
+				id: 'var1',
+				valuesByMode: null
+			});
 
 			const result = await findFontSizeVariable(24);
 			expect(result).toBeNull();
@@ -252,287 +296,521 @@ describe('Typography Functions', () => {
 				vi.clearAllMocks();
 			}
 		});
+
+		it('should handle errors gracefully', async () => {
+			mockFigma.variables.getLocalVariableCollectionsAsync.mockRejectedValue(new Error('API Error'));
+
+			const result = await findFontWeightVariable(700);
+			expect(result).toBeNull();
+		});
+
+		it('should handle variables without valuesByMode', async () => {
+			const collections = [{
+				id: 'collection1',
+				name: 'Typography',
+				modes: [{ modeId: 'mode1', name: 'Default' }],
+				variableIds: ['var1']
+			}];
+
+			mockFigma.variables.getLocalVariableCollectionsAsync.mockResolvedValue(collections);
+			mockFigma.variables.getVariablesByCollectionIdAsync.mockResolvedValue([{
+				id: 'var1',
+				name: 'font/weight/medium' // Use a weight name that doesn't match 700 (bold)
+			}]);
+			mockFigma.variables.getVariableByIdAsync.mockResolvedValue({
+				id: 'var1',
+				valuesByMode: null
+			});
+
+			const result = await findFontWeightVariable(700);
+			expect(result).toBeNull();
+		});
 	});
 
 	describe('getTypographyPresets', () => {
-		it('should return empty array when no text styles', async () => {
-			mockFigma.getLocalTextStylesAsync.mockResolvedValue([]);
-
-			const result = await getTypographyPresets();
-			expect(result).toEqual([]);
-		});
-
-		it('should process basic text style', async () => {
-			const textStyles = [{
-				name: 'Heading 1',
-				fontFamily: 'Arial',
-				fontSize: 32,
-				fontWeight: 700,
-				lineHeight: { value: 120, unit: 'PERCENT' }
-			}];
-
-			mockFigma.getLocalTextStylesAsync.mockResolvedValue(textStyles);
-
-			const result = await getTypographyPresets();
-			expect(result).toHaveLength(1);
-			   expect(result[0]).toEqual({
-    slug: 'heading-1',
-    name: 'Heading 1',
-    selector: 'h1',
-    fontFamily: 'var(--wp--preset--font-family--arial)',
-    fontSize: '32px',
-    fontWeight: 700,
-    lineHeight: '1.2'
-   });
-		});
-
-		it('should add selector for heading styles', async () => {
-			const textStyles = [
-				{ name: 'H1', fontFamily: 'Arial', fontSize: 32 },
-				{ name: 'Heading 2', fontFamily: 'Arial', fontSize: 28 },
-				{ name: 'heading-3', fontFamily: 'Arial', fontSize: 24 }
+		it('should process text styles and create typography presets', async () => {
+			const mockTextStyles = [
+				{
+					name: 'Heading 1',
+					fontFamily: 'Arial',
+					fontSize: 32,
+					fontWeight: 700,
+					lineHeight: { value: 1.2, unit: 'PERCENT' },
+					letterSpacing: { value: 0, unit: 'PERCENT' },
+					textCase: 'UPPER',
+					textDecoration: 'UNDERLINE',
+					textDecorationColor: { r: 1, g: 0, b: 0 },
+					textDecorationStyle: 'DASHED',
+					textDecorationThickness: { value: 2 },
+					textDecorationOffset: { value: 4 },
+					textDecorationSkipInk: 'NONE',
+					hangingPunctuation: true,
+					leadingTrim: 'BOTH',
+					boundVariables: {}
+				}
 			];
 
-			mockFigma.getLocalTextStylesAsync.mockResolvedValue(textStyles);
-
-			const result = await getTypographyPresets();
-			expect(result[0].selector).toBe('h1');
-			expect(result[1].selector).toBe('h2');
-			expect(result[2].selector).toBe('h3');
-		});
-
-		it('should handle bound variables for font family', async () => {
-			const textStyles = [{
-				name: 'Body Text',
-				boundVariables: {
-					fontFamily: { id: 'font-var-id' }
-				}
-			}];
-
-			mockFigma.getLocalTextStylesAsync.mockResolvedValue(textStyles);
-			mockFigma.variables.getVariableByIdAsync.mockResolvedValue({
-				name: 'font/family/primary'
-			});
-
-			const result = await getTypographyPresets();
-			expect(result[0].fontFamily).toBeUndefined();
-		});
-
-		it('should handle bound variables for font size', async () => {
-			const textStyles = [{
-				name: 'Body Text',
-				boundVariables: {
-					fontSize: { id: 'size-var-id' }
-				}
-			}];
-
-			mockFigma.getLocalTextStylesAsync.mockResolvedValue(textStyles);
-			mockFigma.variables.getVariableByIdAsync.mockResolvedValue({
-				name: 'font/size/medium'
-			});
-
-			const result = await getTypographyPresets();
-			expect(result[0].fontSize).toBeUndefined();
-		});
-
-		it('should handle fontName fallback', async () => {
-			const textStyles = [{
-				name: 'Body Text',
-				fontName: { family: 'Helvetica' },
-				fontSize: 16
-			}];
-
-			mockFigma.getLocalTextStylesAsync.mockResolvedValue(textStyles);
+			mockFigma.getLocalTextStylesAsync.mockResolvedValue(mockTextStyles);
 			mockFigma.variables.getLocalVariableCollectionsAsync.mockResolvedValue([]);
 
 			const result = await getTypographyPresets();
-			expect(result[0].fontFamily).toBe('var(--wp--preset--font-family--helvetica)');
-			expect(result[0].fontSize).toBe('16px');
+
+			expect(result).toHaveLength(1);
+			expect(result[0]).toMatchObject({
+				slug: 'heading-1',
+				name: 'Heading 1',
+				selector: 'h1',
+				fontFamily: 'var(--wp--preset--font-family--arial)',
+				fontSize: '32px',
+				fontWeight: 700,
+				lineHeight: '0.012',
+				letterSpacing: 0,
+				textTransform: 'uppercase',
+				textDecoration: 'underline',
+				textDecorationColor: '#ff0000',
+				textDecorationStyle: 'dashed',
+				textDecorationThickness: '2px',
+				textUnderlineOffset: '4px',
+				textDecorationSkipInk: 'none',
+				hangingPunctuation: 'first',
+				leadingTrim: 'both'
+			});
 		});
 
-		it('should handle line height conversion from percentage', async () => {
-			const textStyles = [{
-				name: 'Body Text',
-				lineHeight: { value: 150, unit: 'PERCENT' }
-			}];
-
-			mockFigma.getLocalTextStylesAsync.mockResolvedValue(textStyles);
-
-			const result = await getTypographyPresets();
-			expect(result[0].lineHeight).toBe('1.5');
-		});
-
-		it('should handle line height as pixels', async () => {
-			const textStyles = [{
-				name: 'Body Text',
-				fontSize: 16,
-				lineHeight: { value: 24, unit: 'PIXELS' }
-			}];
-
-			mockFigma.getLocalTextStylesAsync.mockResolvedValue(textStyles);
-
-			const result = await getTypographyPresets();
-			expect(result[0].lineHeight).toBe('1.5'); // 24/16 = 1.5
-		});
-
-		it('should handle letter spacing conversion', async () => {
-			const textStyles = [{
-				name: 'Body Text',
-				fontSize: 16,
-				letterSpacing: { value: 0.5, unit: 'PIXELS' }
-			}];
-
-			mockFigma.getLocalTextStylesAsync.mockResolvedValue(textStyles);
-
-			const result = await getTypographyPresets();
-			expect(result[0].letterSpacing).toBe('0.031em'); // 0.5/16 = 0.03125
-		});
-
-		it('should handle text case transformations', async () => {
-			const textStyles = [
-				{ name: 'Upper', textCase: 'UPPER' },
-				{ name: 'Lower', textCase: 'LOWER' },
-				{ name: 'Title', textCase: 'TITLE' },
-				{ name: 'Small Caps', textCase: 'SMALL_CAPS' }
+		it('should handle bound variables for font properties', async () => {
+			// Reset all mocks to ensure clean state
+			vi.clearAllMocks();
+			
+			const mockTextStyles = [
+				{
+					name: 'Body Text',
+					fontFamily: 'Arial', // Add actual values to trigger the bound variable logic
+					fontSize: 16,
+					fontWeight: 400,
+					lineHeight: 1.5,
+					letterSpacing: 0,
+					boundVariables: {
+						fontFamily: { id: 'font-family-var' },
+						fontSize: { id: 'font-size-var' },
+						fontWeight: { id: 'font-weight-var' },
+						lineHeight: { id: 'line-height-var' },
+						letterSpacing: { id: 'letter-spacing-var' }
+					}
+				}
 			];
 
-			mockFigma.getLocalTextStylesAsync.mockResolvedValue(textStyles);
+			mockFigma.getLocalTextStylesAsync.mockResolvedValue(mockTextStyles);
+			// Mock the variables in the order they are processed: fontFamily, fontSize, fontWeight, lineHeight, letterSpacing
+			mockFigma.variables.getVariableByIdAsync
+				.mockResolvedValueOnce({ name: 'font/family/primary' })
+				.mockResolvedValueOnce({ name: 'font/size/body' })
+				.mockResolvedValueOnce({ name: 'font/weight/normal' })
+				.mockResolvedValueOnce({ name: 'font/line-height/normal' })
+				.mockResolvedValueOnce({ name: 'font/letter-spacing/normal' });
 
 			const result = await getTypographyPresets();
-			expect(result[0].textTransform).toBe('uppercase');
-			expect(result[1].textTransform).toBe('lowercase');
-			expect(result[2].textTransform).toBe('capitalize');
-			expect(result[3].textTransform).toBe('small-caps');
+
+			expect(result[0]).toMatchObject({
+				name: 'Body Text',
+				slug: 'body-text',
+				fontFamily: 'var(--wp--custom--font--family--primary)',
+				fontSize: 'var(--wp--custom--font--size--body)',
+				fontWeight: 'var(--wp--custom--font--weight--normal)',
+				lineHeight: 'var(--wp--custom--font--line-height--normal)',
+				letterSpacing: 'var(--wp--custom--font--letter-spacing--normal)'
+			});
 		});
 
-		it('should handle text decoration', async () => {
-			const textStyles = [
-				{ name: 'Underline', textDecoration: 'UNDERLINE' },
-				{ name: 'Strikethrough', textDecoration: 'STRIKETHROUGH' },
-				{ name: 'None', textDecoration: 'NONE' }
+		it('should handle fontName fallback when fontFamily is not available', async () => {
+			const mockTextStyles = [
+				{
+					name: 'Test Style',
+					fontName: { family: 'Helvetica', style: 'Bold' }
+				}
 			];
 
-			mockFigma.getLocalTextStylesAsync.mockResolvedValue(textStyles);
+			mockFigma.getLocalTextStylesAsync.mockResolvedValue(mockTextStyles);
 
 			const result = await getTypographyPresets();
-			expect(result[0].textDecoration).toBe('underline');
-			expect(result[1].textDecoration).toBe('line-through');
-			expect(result[2].textDecoration).toBeUndefined();
+
+			expect(result[0]).toMatchObject({
+				fontFamily: 'var(--wp--preset--font-family--helvetica)',
+				fontWeight: 700
+			});
 		});
 
-		it('should handle text decoration color', async () => {
-			const textStyles = [{
-				name: 'Decorated',
-				textDecorationColor: { r: 1, g: 0, b: 0 }
-			}];
+		it('should handle various font weight mappings from fontName.style', async () => {
+			const mockTextStyles = [
+				{ name: 'Thin', fontName: { style: 'Thin' } },
+				{ name: 'Light', fontName: { style: 'Light' } },
+				{ name: 'Regular', fontName: { style: 'Regular' } },
+				{ name: 'Medium', fontName: { style: 'Medium' } },
+				{ name: 'SemiBold', fontName: { style: 'SemiBold' } },
+				{ name: 'Bold', fontName: { style: 'Bold' } },
+				{ name: 'Black', fontName: { style: 'Black' } },
+				{ name: 'Numeric', fontName: { style: '600' } }
+			];
 
-			mockFigma.getLocalTextStylesAsync.mockResolvedValue(textStyles);
+			mockFigma.getLocalTextStylesAsync.mockResolvedValue(mockTextStyles);
 
 			const result = await getTypographyPresets();
+
+			expect(result[0].fontWeight).toBe(100); // Thin
+			expect(result[1].fontWeight).toBe(300); // Light
+			expect(result[2].fontWeight).toBe(400); // Regular
+			expect(result[3].fontWeight).toBe(500); // Medium
+			expect(result[4].fontWeight).toBe(600); // SemiBold
+			expect(result[5].fontWeight).toBe(700); // Bold
+			expect(result[6].fontWeight).toBe(900); // Black
+			expect(result[7].fontWeight).toBe(600); // Numeric
+		});
+
+		it('should handle different lineHeight formats', async () => {
+			const mockTextStyles = [
+				{
+					name: 'Percent',
+					lineHeight: { value: 120, unit: 'PERCENT' },
+					fontSize: 16
+				},
+				{
+					name: 'Pixels',
+					lineHeight: { value: 24, unit: 'PIXELS' },
+					fontSize: 16
+				},
+				{
+					name: 'Number',
+					lineHeight: 1.5
+				},
+				{
+					name: 'String Px',
+					lineHeight: '20px',
+					fontSize: 16
+				},
+				{
+					name: 'String Percent',
+					lineHeight: '150%'
+				},
+				{
+					name: 'String Number',
+					lineHeight: '1.4'
+				}
+			];
+
+			mockFigma.getLocalTextStylesAsync.mockResolvedValue(mockTextStyles);
+
+			const result = await getTypographyPresets();
+
+			expect(result[0].lineHeight).toBe('1.2'); // 120% -> 1.2
+			expect(result[1].lineHeight).toBe('1.5'); // 24px / 16px -> 1.5
+			expect(result[2].lineHeight).toBe('1.5'); // Direct number
+			expect(result[3].lineHeight).toBe('1.25'); // 20px / 16px -> 1.25
+			expect(result[4].lineHeight).toBe('1.5'); // 150% -> 1.5
+			expect(result[5].lineHeight).toBe('1.4'); // Direct string number
+		});
+
+		it('should handle different letterSpacing formats', async () => {
+			const mockTextStyles = [
+				{
+					name: 'Zero Percent',
+					letterSpacing: { value: 0, unit: 'PERCENT' },
+					fontSize: 16
+				},
+				{
+					name: 'Pixels',
+					letterSpacing: { value: 2, unit: 'PIXELS' },
+					fontSize: 16
+				},
+				{
+					name: 'Number',
+					letterSpacing: 0.5
+				},
+				{
+					name: 'String Px',
+					letterSpacing: '1px',
+					fontSize: 16
+				},
+				{
+					name: 'String Number',
+					letterSpacing: '0.25'
+				}
+			];
+
+			mockFigma.getLocalTextStylesAsync.mockResolvedValue(mockTextStyles);
+
+			const result = await getTypographyPresets();
+
+			expect(result[0].letterSpacing).toBe(0); // 0% -> 0
+			expect(result[1].letterSpacing).toBe('0.125em'); // 2px / 16px -> 0.125em
+			expect(result[2].letterSpacing).toBe('0.5'); // Direct number as string
+			expect(result[3].letterSpacing).toBe('0.063em'); // 1px / 16px -> 0.063em
+			expect(result[4].letterSpacing).toBe('0.25'); // Direct string number
+		});
+
+		it('should handle text decoration properties with bound variables', async () => {
+			// Reset all mocks to ensure clean state
+			vi.clearAllMocks();
+			
+			const mockTextStyles = [
+				{
+					name: 'Decorated',
+					textCase: 'TITLE',
+					textDecoration: 'STRIKETHROUGH',
+					textDecorationColor: { r: 0, g: 1, b: 0 },
+					textDecorationStyle: 'DOTTED',
+					textDecorationThickness: 3,
+					textDecorationOffset: 2,
+					textDecorationSkipInk: 'ALL',
+					hangingPunctuation: false,
+					leadingTrim: 'CAP',
+					boundVariables: {
+						textCase: { id: 'text-case-var' },
+						textDecoration: { id: 'text-decoration-var' },
+						textDecorationColor: { id: 'text-decoration-color-var' },
+						textDecorationStyle: { id: 'text-decoration-style-var' },
+						textDecorationThickness: { id: 'text-decoration-thickness-var' },
+						textDecorationOffset: { id: 'text-decoration-offset-var' },
+						textDecorationSkipInk: { id: 'text-decoration-skip-ink-var' },
+						hangingPunctuation: { id: 'hanging-punctuation-var' },
+						leadingTrim: { id: 'leading-trim-var' }
+					}
+				}
+			];
+
+			mockFigma.getLocalTextStylesAsync.mockResolvedValue(mockTextStyles);
+			// Mock the variables in the order they are processed: textCase, textDecoration, textDecorationColor, textDecorationStyle, textDecorationThickness, textDecorationOffset, textDecorationSkipInk, hangingPunctuation, leadingTrim
+			mockFigma.variables.getVariableByIdAsync
+				.mockResolvedValueOnce({ name: 'text/case' })
+				.mockResolvedValueOnce({ name: 'text/decoration' })
+				.mockResolvedValueOnce({ name: 'text/decoration-color' })
+				.mockResolvedValueOnce({ name: 'text/decoration-style' })
+				.mockResolvedValueOnce({ name: 'text/decoration-thickness' })
+				.mockResolvedValueOnce({ name: 'text/decoration-offset' })
+				.mockResolvedValueOnce({ name: 'text/decoration-skip-ink' })
+				.mockResolvedValueOnce({ name: 'text/hanging-punctuation' })
+				.mockResolvedValueOnce({ name: 'text/leading-trim' });
+
+			const result = await getTypographyPresets();
+
+			expect(result[0]).toMatchObject({
+				textTransform: 'var(--wp--custom--text--case)',
+				textDecoration: 'var(--wp--custom--text--decoration)',
+				textDecorationColor: 'var(--wp--custom--text--decoration-color)',
+				textDecorationStyle: 'var(--wp--custom--text--decoration-style)',
+				textDecorationThickness: 'var(--wp--custom--text--decoration-thickness)',
+				textUnderlineOffset: 'var(--wp--custom--text--decoration-offset)',
+				textDecorationSkipInk: 'var(--wp--custom--text--decoration-skip-ink)',
+				hangingPunctuation: 'var(--wp--custom--text--hanging-punctuation)',
+				leadingTrim: 'var(--wp--custom--text--leading-trim)'
+			});
+		});
+
+		it('should handle edge cases and undefined values', async () => {
+			const mockTextStyles = [
+				{
+					name: 'Edge Case',
+					textCase: 'ORIGINAL',
+					textDecoration: 'NONE',
+					textDecorationStyle: 'SOLID',
+					textDecorationSkipInk: 'AUTO',
+					leadingTrim: 'AUTO',
+					textDecorationThickness: null,
+					textDecorationOffset: undefined,
+					lineHeight: { value: null, unit: 'PERCENT' }
+				}
+			];
+
+			mockFigma.getLocalTextStylesAsync.mockResolvedValue(mockTextStyles);
+
+			const result = await getTypographyPresets();
+
+			// These properties should not be set when they have default/undefined values
+			expect(result[0]).not.toHaveProperty('textTransform');
+			expect(result[0]).not.toHaveProperty('textDecoration');
+			expect(result[0]).not.toHaveProperty('textDecorationStyle');
+			expect(result[0]).not.toHaveProperty('textDecorationSkipInk');
+			expect(result[0]).not.toHaveProperty('leadingTrim');
+			expect(result[0]).not.toHaveProperty('textDecorationThickness');
+			expect(result[0]).not.toHaveProperty('textUnderlineOffset');
+			expect(result[0].lineHeight).toBe('normal');
+		});
+
+		it('should handle string textDecorationColor', async () => {
+			const mockTextStyles = [
+				{
+					name: 'String Color',
+					textDecoration: 'UNDERLINE',
+					textDecorationColor: '#ff0000'
+				}
+			];
+
+			mockFigma.getLocalTextStylesAsync.mockResolvedValue(mockTextStyles);
+
+			const result = await getTypographyPresets();
+
 			expect(result[0].textDecorationColor).toBe('#ff0000');
 		});
 
-		it('should handle text decoration style', async () => {
-			const textStyles = [
-				{ name: 'Dashed', textDecorationStyle: 'DASHED' },
-				{ name: 'Dotted', textDecorationStyle: 'DOTTED' },
-				{ name: 'Wavy', textDecorationStyle: 'WAVY' },
-				{ name: 'Solid', textDecorationStyle: 'SOLID' }
-			];
-
-			mockFigma.getLocalTextStylesAsync.mockResolvedValue(textStyles);
-
-			const result = await getTypographyPresets();
-			expect(result[0].textDecorationStyle).toBe('dashed');
-			expect(result[1].textDecorationStyle).toBe('dotted');
-			expect(result[2].textDecorationStyle).toBe('wavy');
-			expect(result[3].textDecorationStyle).toBeUndefined(); // SOLID is default
-		});
-
-		it('should handle text decoration thickness', async () => {
-			const textStyles = [
-				{ name: 'Thick', textDecorationThickness: 2 },
-				{ name: 'Object', textDecorationThickness: { value: 3 } }
-			];
-
-			mockFigma.getLocalTextStylesAsync.mockResolvedValue(textStyles);
-
-			const result = await getTypographyPresets();
-			expect(result[0].textDecorationThickness).toBe('2px');
-			expect(result[1].textDecorationThickness).toBe('3px');
-		});
-
-		it('should handle hanging punctuation', async () => {
-			const textStyles = [
-				{ name: 'Hanging True', hangingPunctuation: true },
-				{ name: 'Hanging False', hangingPunctuation: false }
-			];
-
-			mockFigma.getLocalTextStylesAsync.mockResolvedValue(textStyles);
-
-			const result = await getTypographyPresets();
-			expect(result[0].hangingPunctuation).toBe('first');
-			expect(result[1].hangingPunctuation).toBe('none');
-		});
-
-		it('should handle leading trim', async () => {
-			const textStyles = [
-				{ name: 'None', leadingTrim: 'NONE' },
-				{ name: 'Both', leadingTrim: 'BOTH' },
-				{ name: 'Cap', leadingTrim: 'CAP' },
-				{ name: 'Alphabetic', leadingTrim: 'ALPHABETIC' },
-				{ name: 'Auto', leadingTrim: 'AUTO' }
-			];
-
-			mockFigma.getLocalTextStylesAsync.mockResolvedValue(textStyles);
-
-			const result = await getTypographyPresets();
-			expect(result[0].leadingTrim).toBe('none');
-			expect(result[1].leadingTrim).toBe('both');
-			expect(result[2].leadingTrim).toBe('start');
-			expect(result[3].leadingTrim).toBe('end');
-			expect(result[4].leadingTrim).toBeUndefined(); // AUTO is default
-		});
-
-		it('should omit invalid properties', async () => {
-			const textStyles = [{
-				name: 'Invalid',
-				textDecorationColor: null,
-				textDecorationThickness: 'invalid',
-				lineHeight: null
-			}];
-
-			mockFigma.getLocalTextStylesAsync.mockResolvedValue(textStyles);
-
-			const result = await getTypographyPresets();
-			expect(result[0].textDecorationColor).toBeUndefined();
-			expect(result[0].textDecorationThickness).toBeUndefined();
-			expect(result[0].lineHeight).toBeUndefined();
-		});
-
-		it('should handle bound variables for all decoration properties', async () => {
-			const textStyles = [{
-				name: 'Bound Decoration',
-				boundVariables: {
-					textDecoration: { id: 'decoration-var' },
-					textDecorationColor: { id: 'color-var' },
-					textDecorationStyle: { id: 'style-var' },
-					textDecorationThickness: { id: 'thickness-var' }
+		it('should handle invalid textDecorationThickness object', async () => {
+			const mockTextStyles = [
+				{
+					name: 'Invalid Thickness',
+					textDecoration: 'UNDERLINE',
+					textDecorationThickness: { invalidProperty: 'test' }
 				}
-			}];
+			];
 
-			mockFigma.getLocalTextStylesAsync.mockResolvedValue(textStyles);
-			mockFigma.variables.getVariableByIdAsync
-				.mockResolvedValueOnce({ name: 'decoration/type' })
-				.mockResolvedValueOnce({ name: 'decoration/color' })
-				.mockResolvedValueOnce({ name: 'decoration/style' })
-				.mockResolvedValueOnce({ name: 'decoration/thickness' });
+			mockFigma.getLocalTextStylesAsync.mockResolvedValue(mockTextStyles);
 
 			const result = await getTypographyPresets();
-			expect(result[0].textDecoration).toBeUndefined();
-			expect(result[0].textDecorationColor).toBeUndefined();
-			expect(result[0].textDecorationStyle).toBeUndefined();
-			expect(result[0].textDecorationThickness).toBeUndefined();
+
+			expect(result[0]).not.toHaveProperty('textDecorationThickness');
+		});
+
+		it('should handle invalid textDecorationOffset object', async () => {
+			const mockTextStyles = [
+				{
+					name: 'Invalid Offset',
+					textDecoration: 'UNDERLINE',
+					textDecorationOffset: { invalidProperty: 'test' }
+				}
+			];
+
+			mockFigma.getLocalTextStylesAsync.mockResolvedValue(mockTextStyles);
+
+			const result = await getTypographyPresets();
+
+			expect(result[0]).not.toHaveProperty('textUnderlineOffset');
+		});
+
+		it('should handle font family variables without valuesByMode', async () => {
+			const collections = [{
+				id: 'collection1',
+				name: 'Fonts',
+				modes: [{ modeId: 'mode1', name: 'Default' }],
+				variableIds: ['var1']
+			}];
+
+			mockFigma.variables.getLocalVariableCollectionsAsync.mockResolvedValue(collections);
+			mockFigma.variables.getVariablesByCollectionIdAsync.mockResolvedValue([{
+				id: 'var1',
+				name: 'font/family/primary'
+			}]);
+			mockFigma.variables.getVariableByIdAsync.mockResolvedValue({
+				id: 'var1',
+				valuesByMode: null
+			});
+
+			const result = await findFontFamilyVariable('Arial');
+			expect(result).toBe('var(--wp--preset--font-family--arial)');
+		});
+
+		it('should handle letterSpacing edge cases', async () => {
+			const mockTextStyles = [
+				{
+					name: 'Null Letter Spacing',
+					letterSpacing: { value: null, unit: 'PIXELS' },
+					fontSize: 16
+				},
+				{
+					name: 'Zero Letter Spacing',
+					letterSpacing: { value: 0, unit: 'PERCENT' },
+					fontSize: 16
+				},
+				{
+					name: 'String Letter Spacing',
+					letterSpacing: '1.5'
+				}
+			];
+
+			mockFigma.getLocalTextStylesAsync.mockResolvedValue(mockTextStyles);
+
+			const result = await getTypographyPresets();
+
+			expect(result[0].letterSpacing).toBe(0); // null value should fallback to 0
+			expect(result[1].letterSpacing).toBe(0); // 0% should be 0
+			expect(result[2].letterSpacing).toBe('1.5'); // string number should be preserved
+		});
+
+		it('should handle textDecorationColor as null', async () => {
+			const mockTextStyles = [
+				{
+					name: 'Null Color',
+					textDecoration: 'UNDERLINE',
+					textDecorationColor: null
+				}
+			];
+
+			mockFigma.getLocalTextStylesAsync.mockResolvedValue(mockTextStyles);
+
+			const result = await getTypographyPresets();
+
+			expect(result[0]).not.toHaveProperty('textDecorationColor');
+		});
+
+		it('should handle numeric textDecorationThickness and textDecorationOffset', async () => {
+			const mockTextStyles = [
+				{
+					name: 'Numeric Values',
+					textDecoration: 'UNDERLINE',
+					textDecorationThickness: 2,
+					textDecorationOffset: 4
+				}
+			];
+
+			mockFigma.getLocalTextStylesAsync.mockResolvedValue(mockTextStyles);
+
+			const result = await getTypographyPresets();
+
+			expect(result[0].textDecorationThickness).toBe('2px');
+			expect(result[0].textUnderlineOffset).toBe('4px');
+		});
+
+		it('should handle lineHeight with null value fallback', async () => {
+			const mockTextStyles = [
+				{
+					name: 'Null Line Height',
+					lineHeight: { value: null, unit: 'PIXELS' },
+					fontSize: 16
+				}
+			];
+
+			mockFigma.getLocalTextStylesAsync.mockResolvedValue(mockTextStyles);
+
+			const result = await getTypographyPresets();
+
+			expect(result[0].lineHeight).toBe('normal'); // Should fallback to 'normal'
+		});
+
+		it('should handle lineHeight with other units', async () => {
+			const mockTextStyles = [
+				{
+					name: 'Other Unit Line Height',
+					lineHeight: { value: 1.5, unit: 'OTHER' },
+					fontSize: 16
+				}
+			];
+
+			mockFigma.getLocalTextStylesAsync.mockResolvedValue(mockTextStyles);
+
+			const result = await getTypographyPresets();
+
+			expect(result[0].lineHeight).toBe('1.5'); // Should use raw value for other units
+		});
+
+		it('should handle letterSpacing with other units', async () => {
+			const mockTextStyles = [
+				{
+					name: 'Other Unit Letter Spacing',
+					letterSpacing: { value: 0.5, unit: 'OTHER' },
+					fontSize: 16
+				}
+			];
+
+			mockFigma.getLocalTextStylesAsync.mockResolvedValue(mockTextStyles);
+
+			const result = await getTypographyPresets();
+
+			expect(result[0].letterSpacing).toBe('0.5'); // Should use raw value for other units
 		});
 	});
 }); 

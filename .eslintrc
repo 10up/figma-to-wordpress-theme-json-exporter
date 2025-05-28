@@ -19,5 +19,14 @@
 			}
 		],
 		"@typescript-eslint/no-explicit-any": "off"
-	}
+	},
+	"overrides": [
+		{
+			"files": ["**/*.test.ts", "**/*.spec.ts", "**/test-setup.ts"],
+			"rules": {
+				"@typescript-eslint/explicit-function-return-type": "off",
+				"@typescript-eslint/strict-boolean-expressions": "off"
+			}
+		}
+	]
 }

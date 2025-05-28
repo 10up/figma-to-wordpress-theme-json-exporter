@@ -200,7 +200,7 @@ describe('getSpacingPresets', () => {
 		};
 
 		const mockVariable2 = {
-			name: 'spacing/base',
+			name: 'spacing/size',
 			resolvedType: 'FLOAT',
 			valuesByMode: {
 				mode1: 16,
@@ -212,19 +212,16 @@ describe('getSpacingPresets', () => {
 		]);
 
 		mockFigma.variables.getVariableByIdAsync
-			.mockImplementation((id: string) => {
-				if (id === 'var1') return Promise.resolve(mockVariable1);
-				if (id === 'var2') return Promise.resolve(mockVariable2);
-				return Promise.resolve(null);
-			});
+			.mockResolvedValueOnce(mockVariable1)
+			.mockResolvedValueOnce(mockVariable2);
 
 		const result = await getSpacingPresets();
 
 		expect(result).toHaveLength(1);
 		expect(result[0]).toEqual({
-			name: 'Base',
-			slug: 'base',
-			size: 'var(--wp--custom--spacing--base)',
+			name: 'Size',
+			slug: 'size',
+			size: 'var(--wp--custom--spacing--size)',
 		});
 	});
 
@@ -532,6 +529,235 @@ describe('getSpacingPresets', () => {
 			name: 'Regular',
 			slug: 'regular',
 			size: 'var(--wp--custom--spacing--regular)',
+		});
+	});
+
+	it('should handle fluid spacing pattern names', async () => {
+		const mockCollection = {
+			name: 'Spacing',
+			modes: [{ modeId: 'mode1', name: 'Default' }],
+			variableIds: ['var1', 'var2', 'var3'],
+		};
+
+		const mockVariables = [
+			{
+				name: 'spacing/32_16',
+				resolvedType: 'FLOAT',
+				valuesByMode: { mode1: 32 },
+			},
+			{
+				name: 'spacing/24_24',
+				resolvedType: 'FLOAT',
+				valuesByMode: { mode1: 24 },
+			},
+			{
+				name: 'spacing/48_12',
+				resolvedType: 'FLOAT',
+				valuesByMode: { mode1: 48 },
+			},
+		];
+
+		mockFigma.variables.getLocalVariableCollectionsAsync.mockResolvedValue([
+			mockCollection,
+		]);
+
+		mockFigma.variables.getVariableByIdAsync
+			.mockImplementation((id: string) => {
+				const index = parseInt(id.replace('var', '')) - 1;
+				return Promise.resolve(mockVariables[index]);
+			});
+
+		const result = await getSpacingPresets();
+
+		expect(result).toHaveLength(3);
+		expect(result[0]).toEqual({
+			name: '24',
+			slug: '24-24',
+			size: 'var(--wp--custom--spacing--24-24)',
+		});
+		expect(result[1]).toEqual({
+			name: 'Fluid (12 → 48)',
+			slug: '48-12',
+			size: 'var(--wp--custom--spacing--48-12)',
+		});
+		expect(result[2]).toEqual({
+			name: 'Fluid (16 → 32)',
+			slug: '32-16',
+			size: 'var(--wp--custom--spacing--32-16)',
+		});
+	});
+
+	it('should handle fluid spacing pattern with same min and max values', async () => {
+		const mockCollection = {
+			name: 'Spacing',
+			modes: [{ modeId: 'mode1', name: 'Default' }],
+			variableIds: ['var1'],
+		};
+
+		const mockVariable = {
+			name: 'spacing/16_16', // Same min and max values
+			resolvedType: 'FLOAT',
+			valuesByMode: {
+				mode1: 16,
+			},
+		};
+
+		mockFigma.variables.getLocalVariableCollectionsAsync.mockResolvedValue([
+			mockCollection,
+		]);
+
+		mockFigma.variables.getVariableByIdAsync.mockResolvedValue(mockVariable);
+
+		const result = await getSpacingPresets();
+
+		expect(result).toHaveLength(1);
+		expect(result[0]).toEqual({
+			name: '16', // Should use single value when min === max
+			slug: '16-16',
+			size: 'var(--wp--custom--spacing--16-16)',
+		});
+	});
+
+	it('should handle fluid spacing pattern with different min and max values', async () => {
+		const mockCollection = {
+			name: 'Spacing',
+			modes: [{ modeId: 'mode1', name: 'Default' }],
+			variableIds: ['var1'],
+		};
+
+		const mockVariable = {
+			name: 'spacing/24_16', // Different min and max values
+			resolvedType: 'FLOAT',
+			valuesByMode: {
+				mode1: 20,
+			},
+		};
+
+		mockFigma.variables.getLocalVariableCollectionsAsync.mockResolvedValue([
+			mockCollection,
+		]);
+
+		mockFigma.variables.getVariableByIdAsync.mockResolvedValue(mockVariable);
+
+		const result = await getSpacingPresets();
+
+		expect(result).toHaveLength(1);
+		expect(result[0]).toEqual({
+			name: 'Fluid (16 → 24)', // Should show fluid pattern
+			slug: '24-16',
+			size: 'var(--wp--custom--spacing--24-16)',
+		});
+	});
+
+	it('should skip collections with no modes', async () => {
+		mockFigma.variables.getLocalVariableCollectionsAsync.mockResolvedValue([
+			{
+				name: 'Empty Spacing',
+				modes: [], // No modes
+				variableIds: ['var1'],
+			},
+			{
+				name: 'Spacing', // Use recognized collection name
+				modes: [{ modeId: 'mode1', name: 'Default' }],
+				variableIds: ['var2'],
+			},
+		]);
+
+		mockFigma.variables.getVariableByIdAsync
+			.mockImplementation((id: string) => {
+				if (id === 'var2') {
+					return Promise.resolve({
+						name: 'valid',
+						resolvedType: 'FLOAT',
+						valuesByMode: {
+							mode1: 16,
+						},
+					});
+				}
+				return Promise.resolve(null);
+			});
+
+		const result = await getSpacingPresets();
+
+		expect(result).toHaveLength(1);
+		expect(result[0]).toEqual({
+			name: 'Valid',
+			slug: 'valid',
+			size: 'var(--wp--custom--spacing--valid)',
+		});
+	});
+
+	it('should handle spacing collection variables without spacing prefix', async () => {
+		const mockCollection = {
+			name: 'Spacing',
+			modes: [{ modeId: 'mode1', name: 'Default' }],
+			variableIds: ['var1', 'var2'],
+		};
+
+		const mockVariables = [
+			{
+				name: 'base',
+				resolvedType: 'FLOAT',
+				valuesByMode: { mode1: 16 },
+			},
+			{
+				name: 'large',
+				resolvedType: 'FLOAT',
+				valuesByMode: { mode1: 32 },
+			},
+		];
+
+		mockFigma.variables.getLocalVariableCollectionsAsync.mockResolvedValue([
+			mockCollection,
+		]);
+
+		mockFigma.variables.getVariableByIdAsync
+			.mockImplementation((id: string) => {
+				const index = parseInt(id.replace('var', '')) - 1;
+				return Promise.resolve(mockVariables[index]);
+			});
+
+		const result = await getSpacingPresets();
+
+		expect(result).toHaveLength(2);
+		expect(result[0]).toEqual({
+			name: 'Base',
+			slug: 'base',
+			size: 'var(--wp--custom--spacing--base)',
+		});
+		expect(result[1]).toEqual({
+			name: 'Large',
+			slug: 'large',
+			size: 'var(--wp--custom--spacing--large)',
+		});
+	});
+
+	it('should handle spacing collection variables that already have spacing prefix', async () => {
+		const mockCollection = {
+			name: 'Spacing',
+			modes: [{ modeId: 'mode1', name: 'Default' }],
+			variableIds: ['var1'],
+		};
+
+		const mockVariable = {
+			name: 'spacing/medium', // Already has spacing prefix
+			resolvedType: 'FLOAT',
+			valuesByMode: { mode1: 24 },
+		};
+
+		mockFigma.variables.getLocalVariableCollectionsAsync.mockResolvedValue([
+			mockCollection,
+		]);
+
+		mockFigma.variables.getVariableByIdAsync.mockResolvedValue(mockVariable);
+
+		const result = await getSpacingPresets();
+
+		expect(result).toHaveLength(1);
+		expect(result[0]).toEqual({
+			name: 'Medium',
+			slug: 'medium',
+			size: 'var(--wp--custom--spacing--medium)', // Should not double the spacing prefix
 		});
 	});
 }); 
