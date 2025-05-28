@@ -16,20 +16,28 @@
 - Support for responsive/fluid variables
 - Automatic unit handling (px) for specific value types
 - Supports downloading the generated files as a zip package
-- Typography handling with text styles to theme.json conversion
+- **Typography presets** - Convert Figma text styles to WordPress typography presets
+- **Color presets** - Generate WordPress color palette from Figma color variables with customizable selection
+- **Spacing presets** - Create WordPress spacing presets from Figma spacing variables
 - Line height values converted from percentage to decimal format (e.g., 120% → 1.2)
 - Text decoration properties with proper color, thickness, and offset handling
 - Omits empty or invalid properties rather than using fallbacks
+- **Resizable plugin interface** for better workflow integration
+- **Multi-file export** with automatic zip packaging for complex themes
 
 ## Usage
+
+### Basic Export
 
 1. **To export Figma variables to theme.json:**
    - Go to Menu > Plugins > WordPress Theme.json Export > Export to theme.json
    - Optionally upload an existing theme.json file to merge variables into it
-   - Enable typography preset generation if needed
+   - Configure export options (typography, color presets, spacing presets)
    - Click "Export Variables" to generate the theme files
    - View the generated theme.json and additional style files in the plugin UI
    - Click "Download Theme Files" to save all files as a zip package
+
+### Advanced Options
 
 2. **To merge with an existing theme.json:**
    - Click "Choose File" in the Base theme.json section
@@ -38,10 +46,32 @@
    - All existing theme.json settings and styles will be preserved
    - New variables will be added under settings.custom
 
-3. **To import variables:**
-   - Go to Menu > Plugins > WordPress Theme.json Export > Import Variables
-   - Paste your JSON structure and provide a collection name
-   - Click Import Variables
+3. **Typography Presets:**
+   - Check "Generate typography presets from text styles"
+   - The plugin will convert all local text styles in your Figma document
+   - Typography presets are added to `settings.custom.typography.presets`
+   - See [TYPOGRAPHY-GUIDE.md](TYPOGRAPHY-GUIDE.md) for detailed information
+
+4. **Color Presets:**
+   - Check "Generate color presets from color variables"
+   - Click "Customize" to select specific colors from your collections
+   - Use the color selection modal to choose which variables to include
+   - Color presets are added to `settings.color.palette`
+   - Supports preview of actual color values and organized by collection
+   - See [COLOR-PRESETS-GUIDE.md](COLOR-PRESETS-GUIDE.md) for detailed information
+
+5. **Spacing Presets:**
+   - Check "Generate spacing presets from spacing variables"
+   - The plugin automatically detects spacing-related variables
+   - Spacing presets are added to `settings.spacing.spacingSizes`
+   - See [SPACING-GUIDE.md](SPACING-GUIDE.md) for detailed information
+
+### Plugin Interface Features
+
+- **Resizable Interface**: Drag the resize handle in the bottom-right corner to adjust plugin size
+- **File Preview**: View generated files with syntax highlighting and copy functionality
+- **Multi-file Download**: Automatic zip packaging when multiple files are generated
+- **Error Handling**: Clear error messages and validation feedback
 
 ## WordPress theme.json Structure
 
@@ -162,25 +192,86 @@ This ensures that your theme.json file follows WordPress best practices and that
 
 For more information on the WordPress theme.json format, see the [WordPress documentation](https://developer.wordpress.org/block-editor/how-to-guides/themes/global-settings-and-styles/).
 
+## Color Presets
+
+The plugin can generate WordPress color presets from your Figma color variables, making them available in the WordPress block editor's color picker. For comprehensive information about this feature, see [COLOR-PRESETS-GUIDE.md](COLOR-PRESETS-GUIDE.md).
+
+### Quick Overview
+
+- Processes color variables from all collections except "Primitives"
+- Customizable selection through an interactive modal interface
+- Organized by collection with visual color previews
+- Creates WordPress color presets under `settings.color.palette`
+
+## Spacing Presets
+
+The plugin automatically generates WordPress spacing presets from Figma spacing variables. For detailed information about spacing presets, see [SPACING-GUIDE.md](SPACING-GUIDE.md).
+
+### Quick Overview
+
+- Processes variables from "Spacing" and "Primitives" collections
+- Automatically detects spacing-related keywords (spacing, gap, margin, padding, size)
+- Special handling for fluid spacing variables (e.g., `24_16` becomes "Fluid (16 → 24)")
+- Creates WordPress spacing presets under `settings.spacing.spacingSizes`
+
 ## Output Files
 
-The plugin generates several types of files:
+The plugin generates several types of files depending on your configuration and Figma setup:
+
+### Core Files
 
 1. **Main theme.json**
    - Contains the base theme settings from the "Primitives" collection
    - Includes the first mode of the "Color" collection
+   - Contains all custom variables under `settings.custom`
+   - Includes typography, color, and spacing presets if enabled
 
-2. **Section Files**
+### Style Variation Files
+
+2. **Section Files** (when applicable)
    - Located in the "styles" directory
    - File naming: `section-{mode-name}.json`
+   - Generated for Color collections with multiple modes
    - Each file represents a color mode that can be applied to groups or sections
+   - Includes proper WordPress theme variation metadata
 
-3. **Button Style Files**
+3. **Button Style Files** (when applicable)
    - Located in the "styles" directory
    - File naming: `button-{variant-name}.json`
-   - Each file represents a button style variant that can be applied to buttons
+   - Generated when button variants are found in the Color collection
+   - Each file represents a button style variant for WordPress block styles
+   - Includes proper WordPress block style variation metadata
 
-All files are packed into a single zip download for easy use in WordPress.
+### File Generation Logic
+
+- **Single file**: When only basic variables are exported without additional modes or button variants
+- **Multiple files**: When Color collections have multiple modes or button variants are detected
+- **Automatic zip packaging**: When multiple files are generated, they're automatically packaged into a zip file for download
+
+### File Structure Example
+
+For a complex setup, you might get:
+```
+wordpress-theme-files.zip
+├── theme.json                    # Main theme file
+└── styles/
+    ├── section-light.json        # Light color mode
+    ├── section-dark.json         # Dark color mode
+    ├── button-secondary.json     # Secondary button variant
+    └── button-tertiary.json      # Tertiary button variant
+```
+
+All files are packed into a single zip download for easy use in WordPress themes.
+
+## Detailed Guides
+
+For comprehensive information on specific features, see these detailed guides:
+
+- **[INSTALL.md](INSTALL.md)** - Complete installation and setup instructions
+- **[TYPOGRAPHY-GUIDE.md](TYPOGRAPHY-GUIDE.md)** - Typography presets and text style conversion
+- **[COLOR-PRESETS-GUIDE.md](COLOR-PRESETS-GUIDE.md)** - Color presets and customization modal
+- **[SPACING-GUIDE.md](SPACING-GUIDE.md)** - Spacing presets and variable detection
+- **[FLUID-VARIABLES-GUIDE.md](FLUID-VARIABLES-GUIDE.md)** - Responsive/fluid variables setup
 
 ## Development
 
