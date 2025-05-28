@@ -22,6 +22,23 @@ Pull requests represent a proposed solution to a specified problem.  They should
 
 For more on how 10up writes and manages code, check out our [10up Engineering Best Practices](https://10up.github.io/Engineering-Best-Practices/).
 
+#### Changesets
+
+This project uses [Changesets](https://github.com/changesets/changesets) for version management. **All pull requests must include a changeset** unless the changes don't affect the published package (e.g., documentation updates, test changes, or CI configuration).
+
+To add a changeset:
+
+1. Run `npm run changeset` in your local development environment
+2. Select the package to bump (for this single-package repo, select the main package)
+3. Choose the appropriate change type:
+   - **patch**: Bug fixes, documentation updates, internal changes
+   - **minor**: New features, enhancements that don't break existing functionality
+   - **major**: Breaking changes that require users to update their code
+4. Write a clear summary of your changes
+5. Commit the generated changeset file with your other changes
+
+The CI will automatically check for changesets and fail if one is missing from a pull request that should include one.
+
 ### Testing
 
 Helping to test an open source project and provide feedback on success or failure of those tests is also a helpful contribution.  You can find details on the Critical Flows and Test Cases in the respective GitHub Wiki as well as details on our overall approach to [Critical Flows and Test Cases in our Open Source Best Practices](https://10up.github.io/Open-Source-Best-Practices/testing/#critial-flows).  Submitting the results of testing via our Critical Flows as a comment on a Pull Request of a specific feature or as an Issue when testing the entire project is the best approach for providing testing results.
