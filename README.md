@@ -335,4 +335,4 @@ Please read [CODE_OF_CONDUCT.md](https://github.com/10up/ui-kit-figma-variable-e
 
 ## Like what you see?
 
-<a href="http://10up.com/contact/"><img src="https://10up.com/uploads/2016/10/10up-Github-Banner.png" width="850" alt="Work with us at 10up"></a>
+<a href="http://10up.com/contact/"><img src="https://fueled.com/wp-content/uploads/2025/06/10up-github-banner.webp" alt="Work with the 10up WordPress Practice at Fueled"></a>
