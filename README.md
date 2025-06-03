@@ -1,4 +1,4 @@
-# WordPress Theme.json Exporter for Figma
+# Figma to WordPress theme.json Exporter
 
 [![Support Level](https://img.shields.io/badge/support-beta-blueviolet.svg)](#support-level) [![MIT License](https://img.shields.io/github/license/10up/10up-block-theme-json-export.svg)](https://github.com/10up/figma-to-wordpress-theme-json-exporter/blob/develop/LICENSE.md)
 
