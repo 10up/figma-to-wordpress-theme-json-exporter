@@ -1,4 +1,6 @@
-# Fluid Variables Guide
+# Fluid Variables Guide *(10up tooling feature)*
+
+> **Note:** The way Fluid/responsive variables (including fluid font sizes and fluid spacing) are implemented here is as a superset of WordPress's native theme.json features. It requires using 10up's specific tooling to leverage this feature. If you are not using 10up's tooling, you can still use the plugin, but the exported fluid variables will not be recognized by WordPress and therefore get ignored.
 
 This guide explains how to use the fluid responsive variables feature in the WordPress Theme.json Exporter plugin.
 

@@ -1,4 +1,6 @@
-# Typography and Text Styling Guide
+# Typography and Text Styling Guide *(10up tooling feature)*
+
+> **Note:** The Typography Presets feature is a superset of WordPress's native theme.json features. It requires using 10up's specific tooling to leverage this feature. If you are not using 10up's tooling, you can still use the plugin, but the exported typography presets variables will not be recognized by WordPress and therefore get ignored.
 
 This guide provides detailed information on how to use the typography and text styling features of the WordPress Theme.json Exporter plugin.
 

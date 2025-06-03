@@ -1,6 +1,6 @@
 # WordPress Theme.json Exporter for Figma
 
-[![Support Level](https://img.shields.io/badge/support-beta-blueviolet.svg)](#support-level) [![MIT License](https://img.shields.io/github/license/10up/ui-kit-figma-variable-export.svg)](https://github.com/10up/ui-kit-figma-variable-export/blob/develop/LICENSE.md)
+[![Support Level](https://img.shields.io/badge/support-beta-blueviolet.svg)](#support-level) [![MIT License](https://img.shields.io/github/license/10up/10up-block-theme-json-export.svg)](https://github.com/10up/figma-to-wordpress-theme-json-exporter/blob/develop/LICENSE.md)
 
 > This Figma plugin converts Figma design tokens/variables into WordPress theme.json format, placing all variables under the `settings.custom` section according to WordPress standards.
 
@@ -16,7 +16,7 @@
 - Support for responsive/fluid variables
 - Automatic unit handling (px) for specific value types
 - Supports downloading the generated files as a zip package
-- **Typography presets** - Convert Figma text styles to WordPress typography presets
+- **Typography presets** - Convert Figma text styles to WordPress typography presets *(10up tooling feature)*
 - **Color presets** - Generate WordPress color palette from Figma color variables with customizable selection
 - **Spacing presets** - Create WordPress spacing presets from Figma spacing variables
 - Line height values converted from percentage to decimal format (e.g., 120% → 1.2)
@@ -46,7 +46,7 @@
    - All existing theme.json settings and styles will be preserved
    - New variables will be added under settings.custom
 
-3. **Typography Presets:**
+3. **Typography Presets:** *(10up tooling feature)*
    - Check "Generate typography presets from text styles"
    - The plugin will convert all local text styles in your Figma document
    - Typography presets are added to `settings.custom.typography.presets`
@@ -146,7 +146,7 @@ The plugin can generate typography presets from Figma text styles:
 - Text decoration properties (color, style, thickness, offset) are properly handled
 - The plugin omits empty or invalid properties rather than using fallbacks to ensure clean output
 
-### Responsive/Fluid Variables
+### Responsive/Fluid Variables *(10up tooling feature)*
 
 If a collection has exactly two modes named "Desktop" and "Mobile", the plugin treats them as responsive variables:
 
@@ -289,7 +289,7 @@ The plugin will automatically transpile TypeScript to JavaScript.
 
 ## Changelog
 
-A complete listing of all notable changes to this project are documented in [CHANGELOG.md](https://github.com/10up/ui-kit-figma-variable-export/blob/develop/CHANGELOG.md).
+A complete listing of all notable changes to this project are documented in [CHANGELOG.md](https://github.com/10up/figma-to-wordpress-theme-json-exporter/blob/develop/CHANGELOG.md).
 
 ## Contributing with Changesets
 
@@ -331,7 +331,7 @@ When changesets are merged to the main branch:
 
 ## Contributing
 
-Please read [CODE_OF_CONDUCT.md](https://github.com/10up/ui-kit-figma-variable-export/blob/develop/CODE_OF_CONDUCT.md) for details on our code of conduct, [CONTRIBUTING.md](https://github.com/10up/ui-kit-figma-variable-export/blob/develop/CONTRIBUTING.md) for details on the process for submitting pull requests to us, and [CREDITS.md](https://github.com/10up/ui-kit-figma-variable-export/blob/develop/CREDITS.md) for a listing of maintainers, contributors, and libraries for this project.
+Please read [CODE_OF_CONDUCT.md](https://github.com/10up/figma-to-wordpress-theme-json-exporter/blob/develop/CODE_OF_CONDUCT.md) for details on our code of conduct, [CONTRIBUTING.md](https://github.com/10up/figma-to-wordpress-theme-json-exporter/blob/develop/CONTRIBUTING.md) for details on the process for submitting pull requests to us, and [CREDITS.md](https://github.com/10up/figma-to-wordpress-theme-json-exporter/blob/develop/CREDITS.md) for a listing of maintainers, contributors, and libraries for this project.
 
 ## Like what you see?
 

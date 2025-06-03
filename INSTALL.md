@@ -67,7 +67,7 @@ For the best results when using the WordPress Theme.json Exporter:
 
 ### Export Options
 
-#### Typography Presets
+#### Typography Presets *(10up tooling feature)*
 - Check "Generate typography presets from text styles"
 - Converts all local text styles in your document to WordPress typography presets
 - Automatically handles line height conversion and text decoration properties
@@ -122,7 +122,7 @@ The plugin automatically creates typography presets from your Figma text styles,
 - Line height values converted from percentages (120%) to decimals (1.2)
 - Proper text decoration handling for color, style, thickness, and offset
 
-### Fluid Variables
+### Fluid Variables *(10up tooling feature)*
 
 For responsive variables (using Desktop and Mobile modes):
 - Values are exported as fluid variables with min and max values

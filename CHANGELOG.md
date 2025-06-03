@@ -39,8 +39,8 @@ All notable changes to this project will be documented in this file, per [the Ke
 
 - Initial private release.
 
-[Unreleased]: https://github.com/10up/ui-kit-figma-variable-export/compare/main...develop
-[1.1.2]: https://github.com/10up/ui-kit-figma-variable-export/compare/v1.1.1...v1.1.2
-[1.1.1]: https://github.com/10up/ui-kit-figma-variable-export/compare/v1.1.0...v1.1.1
-[1.1.0]: https://github.com/10up/ui-kit-figma-variable-export/compare/v1.0.0...v1.1.0
-[1.0.0]: https://github.com/10up/ui-kit-figma-variable-export/tree/v1.0.0
+[Unreleased]: https://github.com/10up/figma-to-wordpress-theme-json-exporter/compare/main...develop
+[1.1.2]: https://github.com/10up/figma-to-wordpress-theme-json-exporter/compare/v1.1.1...v1.1.2
+[1.1.1]: https://github.com/10up/figma-to-wordpress-theme-json-exporter/compare/v1.1.0...v1.1.1
+[1.1.0]: https://github.com/10up/figma-to-wordpress-theme-json-exporter/compare/v1.0.0...v1.1.0
+[1.0.0]: https://github.com/10up/figma-to-wordpress-theme-json-exporter/tree/v1.0.0

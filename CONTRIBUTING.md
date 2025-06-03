@@ -10,11 +10,11 @@ Contributing isn't just writing code - it's anything that improves the project. 
 
 ### Reporting bugs
 
-If you're running into an issue, please take a look through [existing issues](https://github.com/10up/ui-kit-figma-variable-export/issues) and [open a new one](https://github.com/10up/ui-kit-figma-variable-export/issues/new) if needed.  If you're able, include steps to reproduce, environment information, and screenshots/screencasts as relevant.
+If you're running into an issue, please take a look through [existing issues](https://github.com/10up/figma-to-wordpress-theme-json-exporter/issues) and [open a new one](https://github.com/10up/figma-to-wordpress-theme-json-exporter/issues/new) if needed.  If you're able, include steps to reproduce, environment information, and screenshots/screencasts as relevant.
 
 ### Suggesting enhancements
 
-New features and enhancements are also managed via [issues](https://github.com/10up/ui-kit-figma-variable-export/issues).
+New features and enhancements are also managed via [issues](https://github.com/10up/figma-to-wordpress-theme-json-exporter/issues).
 
 ### Pull requests
 
@@ -60,12 +60,14 @@ The `develop` branch is the development branch which means it contains the next 
 9. Compare `main` to `develop` to ensure no additional changes were missed. Visit [REPOSITORY_URL]/compare/main...develop
 10. Test the pre-release ZIP locally by downloading it from the **Build Plugin** action artifact and installing it locally.  Ensure this zip has all the files we expect, that it installs and activates correctly and that all basic functionality is working.
 11. Either perform Regression Testing utilizing the available [Critical Flows](https://10up.github.io/Open-Source-Best-Practices/testing/#critical-flows) and Test Cases or if [end-to-end tests](https://10up.github.io/Open-Source-Best-Practices/testing/#e2e-testing) cover a significant portion of those Critical Flows then run e2e tests.  Only proceed if everything tests successfully.
-12. Release: Create a [new release](https://github.com/10up/ui-kit-figma-variable-export/releases/new), naming the tag and the release with the new version number, and targeting the `main` branch. Paste the changelog from `CHANGELOG.md` into the body of the release and include a link to the closed issues on the [milestone](https://github.com/10up/ui-kit-figma-variable-export/milestone/#?closed=1).
-13. Close milestone: Edit the [milestone](https://github.com/10up/ui-kit-figma-variable-export/milestone/#) with release date (in the `Due date (optional)` field) and link to GitHub release (in the `Description` field), then close the milestone.
+12. Release: Create a [new release](https://github.com/10up/figma-to-wordpress-theme-json-exporter/releases/new), naming the tag and the release with the new version number, and targeting the `main` branch. Paste the changelog from `CHANGELOG.md` into the body of the release and include a link to the closed issues on the [milestone](https://github.com/10up/figma-to-wordpress-theme-json-exporter/milestone/#?closed=1).
+13. Close milestone: Edit the [milestone](https://github.com/10up/figma-to-wordpress-theme-json-exporter/milestone/#) with release date (in the `Due date (optional)` field) and link to GitHub release (in the `Description` field), then close the milestone.
 14. Punt incomplete items: If any open issues or PRs which were milestoned for `X.Y.Z` do not make it into the release, update their milestone to `X.Y.Z+1`, `X.Y+1.0`, `X+1.0.0` or `Future Release`.
 
 ### What to do if things go wrong
 
-If you run into issues during the release process and things have NOT fully deployed to WordPress.org / npm / whatever external-to-GitHub location that we might be publishing to, then the best thing to do will be to delete any Tag (e.g., https://github.com/10up/ui-kit-figma-variable-export/releases/tag/TAGNAME) or Release that's been created, research what's wrong, and once things are resolved work on re-tagging and re-releasing on GitHub and publishing externally where needed.
+If you run into issues during the release process and things have NOT fully deployed to WordPress.org / npm / whatever external-to-GitHub location that we might be publishing to, then the best thing to do will be to delete any Tag (e.g., https://github.com/10up/figma-to-wordpress-theme-json-exporter/releases/tag/TAGNAME) or Release that's been created, research what's wrong, and once things are resolved work on re-tagging and re-releasing on GitHub and publishing externally where needed.
 
 If you run into issues during the release process and things HAVE deployed to WordPress.org / npm / whatever external-to-GitHub location that we might be publishing to, then the best thing to do will be to research what's wrong and once things are resolved work on a patch release and tag on GitHub and publishing externally where needed.  At the top of the changelog / release notes it's best to note that its a hotfix to resolve whatever issues were found after the previous release.
+
+Note: The zip file is automatically generated by GitHub at the time of every Release with the name that matches the Tag (e.g., https://github.com/10up/figma-to-wordpress-theme-json-exporter/releases/tag/TAGNAME) or Release that's been created, research what's wrong, and once things are resolved work on re-tagging and re-releasing on GitHub and publishing externally by running the above commands.

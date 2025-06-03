@@ -2,10 +2,10 @@
 	"name": "figma-theme-json-generator",
 	"version": "1.1.3",
 	"description": "Generate WordPress theme.json from Figma variables",
-	"homepage": "https://github.com/10up/ui-kit-figma-variable-export",
+	"homepage": "https://github.com/10up/figma-to-wordpress-theme-json-exporter",
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/10up/ui-kit-figma-variable-export.git"
+		"url": "https://github.com/10up/figma-to-wordpress-theme-json-exporter.git"
 	},
 	"license": "MIT",
 	"contributors": [
