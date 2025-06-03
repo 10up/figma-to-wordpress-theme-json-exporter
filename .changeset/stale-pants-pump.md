@@ -1,5 +1,5 @@
 ---
-"figma-theme-json-generator": minor
+"figma-to-wordpress-theme-json-exporter": minor
 ---
 
 Public Release
