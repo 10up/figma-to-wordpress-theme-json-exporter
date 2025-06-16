@@ -5,6 +5,8 @@ import {
 	deepMerge,
 	shouldAddPxUnit,
 	formatValueWithUnits,
+	shouldUseRemForCollection,
+	convertPxToRem,
 	roundToMax3Decimals,
 	capitalizeFirstLetter
 } from './index';
@@ -248,6 +250,187 @@ describe('formatValueWithUnits', () => {
 
 	it('should handle zero values', () => {
 		expect(formatValueWithUnits(['spacing'], 0)).toBe(0);
+	});
+
+	it('should use rem units when rem conversion is enabled and collection matches', () => {
+		const remCollections = { font: true, primitives: false, spacing: true };
+		
+		expect(formatValueWithUnits(['font', 'size'], 16, true, remCollections)).toBe('1rem');
+		expect(formatValueWithUnits(['spacing', 'large'], 32, true, remCollections)).toBe('2rem');
+		expect(formatValueWithUnits(['typography', 'font'], 24, true, remCollections)).toBe('1.5rem');
+	});
+
+	it('should use px units when rem conversion is enabled but collection does not match', () => {
+		const remCollections = { font: true, primitives: false, spacing: false };
+		
+		expect(formatValueWithUnits(['spacing', 'large'], 32, true, remCollections)).toBe('32px');
+		expect(formatValueWithUnits(['radius', 'small'], 8, true, remCollections)).toBe('8px');
+	});
+
+	it('should use px units when rem conversion is disabled', () => {
+		const remCollections = { font: true, primitives: true, spacing: true };
+		
+		expect(formatValueWithUnits(['font', 'size'], 16, false, remCollections)).toBe('16px');
+		expect(formatValueWithUnits(['spacing', 'large'], 32, false, remCollections)).toBe('32px');
+	});
+
+	it('should use px units when no rem collections are provided', () => {
+		expect(formatValueWithUnits(['font', 'size'], 16, true, undefined)).toBe('16px');
+		expect(formatValueWithUnits(['font', 'size'], 16, true, null)).toBe('16px');
+		expect(formatValueWithUnits(['font', 'size'], 16, true, {})).toBe('16px');
+	});
+
+	it('should handle custom collection names in rem collections', () => {
+		const remCollections = { myCustomCollection: true, otherCollection: false };
+		
+		expect(formatValueWithUnits(['myCustomCollection', 'size'], 16, true, remCollections)).toBe('1rem');
+		expect(formatValueWithUnits(['otherCollection', 'size'], 16, true, remCollections)).toBe('16px');
+	});
+});
+
+describe('shouldUseRemForCollection', () => {
+	it('should return false when no rem collections provided', () => {
+		expect(shouldUseRemForCollection(['font', 'size'], undefined)).toBe(false);
+		expect(shouldUseRemForCollection(['font', 'size'], null)).toBe(false);
+		expect(shouldUseRemForCollection(['font', 'size'], {})).toBe(false);
+	});
+
+	it('should return true for font/typography variables when font collection is enabled', () => {
+		const remCollections = { font: true, primitives: false, spacing: false };
+		
+		expect(shouldUseRemForCollection(['font', 'size'], remCollections)).toBe(true);
+		expect(shouldUseRemForCollection(['typography', 'heading'], remCollections)).toBe(true);
+		expect(shouldUseRemForCollection(['heading', 'font'], remCollections)).toBe(true);
+		expect(shouldUseRemForCollection(['text', 'font', 'size'], remCollections)).toBe(true);
+	});
+
+	it('should return false for font/typography variables when font collection is disabled', () => {
+		const remCollections = { font: false, primitives: true, spacing: true };
+		
+		expect(shouldUseRemForCollection(['font', 'size'], remCollections)).toBe(false);
+		expect(shouldUseRemForCollection(['typography', 'heading'], remCollections)).toBe(false);
+	});
+
+	it('should return true for primitives variables when primitives collection is enabled', () => {
+		const remCollections = { font: false, primitives: true, spacing: false };
+		
+		expect(shouldUseRemForCollection(['primitives', 'size'], remCollections)).toBe(true);
+		expect(shouldUseRemForCollection(['base', 'primitives'], remCollections)).toBe(true);
+		expect(shouldUseRemForCollection(['primitives', 'spacing', 'unit'], remCollections)).toBe(true);
+	});
+
+	it('should return false for primitives variables when primitives collection is disabled', () => {
+		const remCollections = { font: true, primitives: false, spacing: true };
+		
+		expect(shouldUseRemForCollection(['primitives', 'size'], remCollections)).toBe(false);
+	});
+
+	it('should return true for spacing variables when spacing collection is enabled', () => {
+		const remCollections = { font: false, primitives: false, spacing: true };
+		
+		expect(shouldUseRemForCollection(['spacing', 'large'], remCollections)).toBe(true);
+		expect(shouldUseRemForCollection(['layout', 'spacing'], remCollections)).toBe(true);
+		expect(shouldUseRemForCollection(['spacing', 'margin', 'top'], remCollections)).toBe(true);
+	});
+
+	it('should return false for spacing variables when spacing collection is disabled', () => {
+		const remCollections = { font: true, primitives: true, spacing: false };
+		
+		expect(shouldUseRemForCollection(['spacing', 'large'], remCollections)).toBe(false);
+	});
+
+	it('should handle custom collection names', () => {
+		const remCollections = { myCustomCollection: true, anotherCollection: false };
+		
+		expect(shouldUseRemForCollection(['myCustomCollection', 'size'], remCollections)).toBe(true);
+		expect(shouldUseRemForCollection(['prefix', 'myCustomCollection'], remCollections)).toBe(true);
+		expect(shouldUseRemForCollection(['anotherCollection', 'size'], remCollections)).toBe(false);
+		expect(shouldUseRemForCollection(['unknownCollection', 'size'], remCollections)).toBe(false);
+	});
+
+	it('should handle case insensitive matching', () => {
+		const remCollections = { font: true, primitives: true, spacing: true };
+		
+		expect(shouldUseRemForCollection(['FONT', 'SIZE'], remCollections)).toBe(true);
+		expect(shouldUseRemForCollection(['Font', 'Size'], remCollections)).toBe(true);
+		expect(shouldUseRemForCollection(['PRIMITIVES'], remCollections)).toBe(true);
+		expect(shouldUseRemForCollection(['SPACING'], remCollections)).toBe(true);
+	});
+
+	it('should return true when any part of path matches enabled collection', () => {
+		const remCollections = { font: true, primitives: false, spacing: false };
+		
+		expect(shouldUseRemForCollection(['design', 'font', 'heading'], remCollections)).toBe(true);
+		expect(shouldUseRemForCollection(['header', 'typography', 'size'], remCollections)).toBe(true);
+	});
+
+	it('should return false when no parts of path match any enabled collection', () => {
+		const remCollections = { font: true, primitives: false, spacing: false };
+		
+		expect(shouldUseRemForCollection(['color', 'primary'], remCollections)).toBe(false);
+		expect(shouldUseRemForCollection(['border', 'radius'], remCollections)).toBe(false);
+		expect(shouldUseRemForCollection(['opacity', 'hover'], remCollections)).toBe(false);
+	});
+
+	it('should handle multiple enabled collections', () => {
+		const remCollections = { font: true, primitives: true, spacing: true, custom: true };
+		
+		expect(shouldUseRemForCollection(['font', 'size'], remCollections)).toBe(true);
+		expect(shouldUseRemForCollection(['primitives', 'unit'], remCollections)).toBe(true);
+		expect(shouldUseRemForCollection(['spacing', 'large'], remCollections)).toBe(true);
+		expect(shouldUseRemForCollection(['custom', 'value'], remCollections)).toBe(true);
+		expect(shouldUseRemForCollection(['color', 'primary'], remCollections)).toBe(false);
+	});
+});
+
+describe('convertPxToRem', () => {
+	it('should convert px values to rem using 16px base', () => {
+		expect(convertPxToRem(16)).toBe('1rem');
+		expect(convertPxToRem(32)).toBe('2rem');
+		expect(convertPxToRem(8)).toBe('0.5rem');
+		expect(convertPxToRem(24)).toBe('1.5rem');
+	});
+
+	it('should handle decimal px values', () => {
+		expect(convertPxToRem(14)).toBe('0.875rem');
+		expect(convertPxToRem(18)).toBe('1.125rem');
+		expect(convertPxToRem(12)).toBe('0.75rem');
+	});
+
+	it('should round to max 3 decimal places', () => {
+		expect(convertPxToRem(1)).toBe('0.063rem'); // 1/16 = 0.0625
+		expect(convertPxToRem(3)).toBe('0.188rem'); // 3/16 = 0.1875
+		expect(convertPxToRem(7)).toBe('0.438rem'); // 7/16 = 0.4375
+	});
+
+	it('should handle zero value', () => {
+		expect(convertPxToRem(0)).toBe('0rem');
+	});
+
+	it('should handle negative values', () => {
+		expect(convertPxToRem(-16)).toBe('-1rem');
+		expect(convertPxToRem(-8)).toBe('-0.5rem');
+	});
+
+	it('should handle very small values', () => {
+		expect(convertPxToRem(0.1)).toBe('0.006rem');
+		expect(convertPxToRem(0.5)).toBe('0.031rem');
+	});
+
+	it('should handle large values', () => {
+		expect(convertPxToRem(160)).toBe('10rem');
+		expect(convertPxToRem(320)).toBe('20rem');
+	});
+
+	it('should handle values that result in exact decimal places', () => {
+		expect(convertPxToRem(4)).toBe('0.25rem'); // 4/16 = 0.25
+		expect(convertPxToRem(20)).toBe('1.25rem'); // 20/16 = 1.25
+		expect(convertPxToRem(28)).toBe('1.75rem'); // 28/16 = 1.75
+	});
+
+	it('should handle edge cases with rounding', () => {
+		expect(convertPxToRem(15.9999)).toBe('1rem'); // Should round to 1
+		expect(convertPxToRem(16.0001)).toBe('1rem'); // Should round to 1
 	});
 });
 

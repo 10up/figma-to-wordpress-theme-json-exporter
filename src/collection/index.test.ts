@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { processCollectionData, processCollectionModeData } from './index';
 import { mockFigma } from '../test-setup';
+import { ExportOptions } from '../types';
 
 describe('Collection Functions', () => {
 	beforeEach(() => {
@@ -173,6 +174,194 @@ describe('Collection Functions', () => {
 							background: '#0000ff'
 						}
 					}
+				}
+			});
+		});
+
+		it('should use rem units when options specify rem conversion for font variables', async () => {
+			const collection = {
+				name: 'Typography',
+				modes: [{ modeId: 'mode1', name: 'Default' }],
+				variableIds: ['var1']
+			};
+			const mode = { modeId: 'mode1', name: 'Default' };
+			const options: ExportOptions = {
+				useRem: true,
+				remCollections: { font: true, primitives: false, spacing: false }
+			};
+
+			mockFigma.variables.getVariableByIdAsync
+				.mockResolvedValueOnce({
+					name: 'font/size/large',
+					resolvedType: 'FLOAT',
+					valuesByMode: {
+						mode1: 24
+					}
+				});
+
+			const result = await processCollectionModeData(collection, mode, options);
+
+			expect(result).toEqual({
+				font: {
+					size: {
+						large: '1.5rem'
+					}
+				}
+			});
+		});
+
+		it('should use rem units when options specify rem conversion for spacing variables', async () => {
+			const collection = {
+				name: 'Spacing',
+				modes: [{ modeId: 'mode1', name: 'Default' }],
+				variableIds: ['var1']
+			};
+			const mode = { modeId: 'mode1', name: 'Default' };
+			const options: ExportOptions = {
+				useRem: true,
+				remCollections: { font: false, primitives: false, spacing: true }
+			};
+
+			mockFigma.variables.getVariableByIdAsync
+				.mockResolvedValueOnce({
+					name: 'spacing/large',
+					resolvedType: 'FLOAT',
+					valuesByMode: {
+						mode1: 32
+					}
+				});
+
+			const result = await processCollectionModeData(collection, mode, options);
+
+			expect(result).toEqual({
+				spacing: {
+					large: '2rem'
+				}
+			});
+		});
+
+		it('should use rem units when options specify rem conversion for primitives variables', async () => {
+			const collection = {
+				name: 'Primitives',
+				modes: [{ modeId: 'mode1', name: 'Default' }],
+				variableIds: ['var1']
+			};
+			const mode = { modeId: 'mode1', name: 'Default' };
+			const options: ExportOptions = {
+				useRem: true,
+				remCollections: { font: false, primitives: true, spacing: false }
+			};
+
+			mockFigma.variables.getVariableByIdAsync
+				.mockResolvedValueOnce({
+					name: 'primitives/size/unit',
+					resolvedType: 'FLOAT',
+					valuesByMode: {
+						mode1: 8
+					}
+				});
+
+			const result = await processCollectionModeData(collection, mode, options);
+
+			expect(result).toEqual({
+				primitives: {
+					size: {
+						unit: '0.5rem'
+					}
+				}
+			});
+		});
+
+		it('should use px units when rem conversion is disabled', async () => {
+			const collection = {
+				name: 'Typography',
+				modes: [{ modeId: 'mode1', name: 'Default' }],
+				variableIds: ['var1']
+			};
+			const mode = { modeId: 'mode1', name: 'Default' };
+			const options: ExportOptions = {
+				useRem: false,
+				remCollections: { font: true, primitives: true, spacing: true }
+			};
+
+			mockFigma.variables.getVariableByIdAsync
+				.mockResolvedValueOnce({
+					name: 'font/size/large',
+					resolvedType: 'FLOAT',
+					valuesByMode: {
+						mode1: 24
+					}
+				});
+
+			const result = await processCollectionModeData(collection, mode, options);
+
+			expect(result).toEqual({
+				font: {
+					size: {
+						large: '24px'
+					}
+				}
+			});
+		});
+
+		it('should use px units when collection is not enabled for rem conversion', async () => {
+			const collection = {
+				name: 'Other',
+				modes: [{ modeId: 'mode1', name: 'Default' }],
+				variableIds: ['var1']
+			};
+			const mode = { modeId: 'mode1', name: 'Default' };
+			const options: ExportOptions = {
+				useRem: true,
+				remCollections: { font: true, primitives: true, spacing: true }
+			};
+
+			mockFigma.variables.getVariableByIdAsync
+				.mockResolvedValueOnce({
+					name: 'other/size/value',
+					resolvedType: 'FLOAT',
+					valuesByMode: {
+						mode1: 16
+					}
+				});
+
+			const result = await processCollectionModeData(collection, mode, options);
+
+			expect(result).toEqual({
+				other: {
+					size: {
+						value: '16px'
+					}
+				}
+			});
+		});
+
+		it('should not affect color variables with rem conversion', async () => {
+			const collection = {
+				name: 'Colors',
+				modes: [{ modeId: 'mode1', name: 'Default' }],
+				variableIds: ['var1']
+			};
+			const mode = { modeId: 'mode1', name: 'Default' };
+			const options: ExportOptions = {
+				useRem: true,
+				remCollections: { font: true, primitives: true, spacing: true }
+			};
+
+			mockFigma.variables.getVariableByIdAsync
+				.mockResolvedValueOnce({
+					name: 'color/primary',
+					resolvedType: 'COLOR',
+					valuesByMode: {
+						mode1: { r: 1, g: 0, b: 0 }
+					}
+				});
+
+			const result = await processCollectionModeData(collection, mode, options);
+
+			expect(result).toEqual({
+				color: {
+					primary: '#ff0000'
 				}
 			});
 		});
@@ -952,6 +1141,136 @@ describe('Collection Functions', () => {
 			expect(result).toEqual({
 				spacing: {
 					responsive: '32px' // Should use desktop direct value
+				}
+			});
+		});
+
+		it('should use rem units in fluid collections when options specify rem conversion', async () => {
+			const collection = {
+				name: 'Fluid Typography',
+				modes: [
+					{ modeId: 'desktop', name: 'Desktop' },
+					{ modeId: 'mobile', name: 'Mobile' }
+				],
+				variableIds: ['var1']
+			};
+			const options: ExportOptions = {
+				useRem: true,
+				remCollections: { font: true, primitives: false, spacing: false }
+			};
+
+			mockFigma.variables.getVariableByIdAsync
+				.mockResolvedValue({
+					name: 'font/size/heading',
+					resolvedType: 'FLOAT',
+					valuesByMode: {
+						desktop: 32,
+						mobile: 24
+					}
+				});
+
+			const result = await processCollectionData(collection, options);
+
+			expect(result).toEqual({
+				font: {
+					size: {
+						heading: {
+							fluid: 'true',
+							min: '1.5rem',
+							max: '2rem'
+						}
+					}
+				}
+			});
+		});
+
+		it('should use px units in fluid collections when rem conversion is disabled', async () => {
+			const collection = {
+				name: 'Fluid Spacing',
+				modes: [
+					{ modeId: 'desktop', name: 'Desktop' },
+					{ modeId: 'mobile', name: 'Mobile' }
+				],
+				variableIds: ['var1']
+			};
+			const options: ExportOptions = {
+				useRem: false,
+				remCollections: { font: true, primitives: true, spacing: true }
+			};
+
+			mockFigma.variables.getVariableByIdAsync
+				.mockResolvedValue({
+					name: 'spacing/large',
+					resolvedType: 'FLOAT',
+					valuesByMode: {
+						desktop: 32,
+						mobile: 16
+					}
+				});
+
+			const result = await processCollectionData(collection, options);
+
+			expect(result).toEqual({
+				spacing: {
+					large: {
+						fluid: 'true',
+						min: '16px',
+						max: '32px'
+					}
+				}
+			});
+		});
+
+		it('should use rem units for enabled collections and px for disabled in fluid collections', async () => {
+			const collection = {
+				name: 'Mixed Fluid Collection',
+				modes: [
+					{ modeId: 'desktop', name: 'Desktop' },
+					{ modeId: 'mobile', name: 'Mobile' }
+				],
+				variableIds: ['var1', 'var2']
+			};
+			const options: ExportOptions = {
+				useRem: true,
+				remCollections: { font: true, primitives: false, spacing: false }
+			};
+
+			mockFigma.variables.getVariableByIdAsync
+				.mockResolvedValueOnce({
+					name: 'font/size/heading',
+					resolvedType: 'FLOAT',
+					valuesByMode: {
+						desktop: 32,
+						mobile: 24
+					}
+				})
+				.mockResolvedValueOnce({
+					name: 'spacing/large',
+					resolvedType: 'FLOAT',
+					valuesByMode: {
+						desktop: 32,
+						mobile: 16
+					}
+				});
+
+			const result = await processCollectionData(collection, options);
+
+			expect(result).toEqual({
+				font: {
+					size: {
+						heading: {
+							fluid: 'true',
+							min: '1.5rem',
+							max: '2rem'
+						}
+					}
+				},
+				spacing: {
+					large: {
+						fluid: 'true',
+						min: '16px',
+						max: '32px'
+					}
 				}
 			});
 		});
