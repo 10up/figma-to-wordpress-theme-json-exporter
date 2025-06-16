@@ -38,7 +38,7 @@ export async function exportToJSON(options: ExportOptions = {}) {
 
 	// Process the primitives collection first if it exists
 	if (primitivesCollection) {
-		const primitivesData = await processCollectionData(primitivesCollection);
+		const primitivesData = await processCollectionData(primitivesCollection, options);
 		mergeCollectionData(theme.settings.custom, "", primitivesData);
 	}
 
@@ -52,7 +52,7 @@ export async function exportToJSON(options: ExportOptions = {}) {
 		// Special handling for the Color collection
 		if (collection.name.toLowerCase() === "color" && collection.modes.length > 0) {
 			// Process the first mode normally and merge into the main theme
-			const firstModeData = await processCollectionModeData(collection, collection.modes[0]);
+			const firstModeData = await processCollectionModeData(collection, collection.modes[0], options);
 
 			// Process button styles specially if they exist
 			if (firstModeData && 'button' in firstModeData) {
@@ -100,7 +100,7 @@ export async function exportToJSON(options: ExportOptions = {}) {
 			// Process additional modes for the Color collection
 			for (let i = 1; i < collection.modes.length; i++) {
 				const mode = collection.modes[i];
-				const modeData = await processCollectionModeData(collection, mode);
+				const modeData = await processCollectionModeData(collection, mode, options);
 
 				// Process button styles for this mode if they exist
 				if (modeData && 'button' in modeData) {
@@ -137,7 +137,7 @@ export async function exportToJSON(options: ExportOptions = {}) {
 		} else {
 			// For non-Color collections or Color collection with just one mode,
 			// process normally
-			const collectionData = await processCollectionData(collection);
+			const collectionData = await processCollectionData(collection, options);
 
 			// Determine where to merge this collection's data based on its name
 			const collectionName = collection.name.toLowerCase();
@@ -149,7 +149,7 @@ export async function exportToJSON(options: ExportOptions = {}) {
 
 	// Add typography presets if requested
 	if (options.generateTypography) {
-		const typographyPresets = await getTypographyPresets();
+		const typographyPresets = await getTypographyPresets(options);
 		if (typographyPresets.length > 0) {
 			theme.settings.custom.typography = theme.settings.custom.typography || {};
 			theme.settings.custom.typography.presets = typographyPresets;

@@ -1,6 +1,7 @@
 import { buildCssVarReference } from '../utils/css';
 import { rgbToHex } from '../utils/color';
-import { roundToMax3Decimals } from '../utils/index';
+import { roundToMax3Decimals, convertPxToRem, shouldUseRemForCollection } from '../utils/index';
+import { ExportOptions } from '../types';
 
 // Helper function to ensure font property variables have the proper WordPress path structure
 export function formatFontPropertyPath(nameParts: string[], propertyType: string): string[] {
@@ -32,7 +33,7 @@ export function formatFontPropertyPath(nameParts: string[], propertyType: string
 }
 
 // Function to retrieve and process text styles from Figma
-export async function getTypographyPresets(): Promise<any[]> {
+export async function getTypographyPresets(options?: ExportOptions): Promise<any[]> {
 	// Get all text styles in the document - use async version
 	const textStyles = await figma.getLocalTextStylesAsync();
 	const typographyPresets = [];
@@ -110,7 +111,16 @@ export async function getTypographyPresets(): Promise<any[]> {
 			} else {
 				// Fallback to the old method if no bound variable
 				const fontSizeVar = await findFontSizeVariable(fontSize);
-				preset.fontSize = fontSizeVar || `${fontSize}px`;
+				if (fontSizeVar) {
+					preset.fontSize = fontSizeVar;
+				} else {
+					// Apply rem conversion if enabled for font/typography
+					if (options?.useRem && shouldUseRemForCollection(['font', 'size'], options.remCollections)) {
+						preset.fontSize = convertPxToRem(fontSize);
+					} else {
+						preset.fontSize = `${fontSize}px`;
+					}
+				}
 			}
 		}
 
