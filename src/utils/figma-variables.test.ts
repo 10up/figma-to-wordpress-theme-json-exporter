@@ -70,6 +70,101 @@ describe('figma-variables utilities', () => {
       });
     });
 
+    it('should use raw color values as fallback', async () => {
+      const collections = [mockCollection()];
+      const variable = mockVariable({
+        resolvedType: 'COLOR',
+        valuesByMode: { mode1: { r: 0.5, g: 0.75, b: 1 } }, // Should become #80bfff
+      });
+
+      mockFigma.variables.getLocalVariableCollectionsAsync.mockResolvedValue(collections);
+      mockFigma.variables.getVariableByIdAsync.mockResolvedValue(variable);
+
+      const result = await applyCssVarSyntaxToVariables({ overwriteExisting: false });
+
+      expect(variable.setVariableCodeSyntax).toHaveBeenCalledWith('WEB', 'var(--wp--custom--color--primary, #80bfff)');
+      expect(result.updatedCount).toBe(1);
+    });
+
+    it('should use raw float values with px unit as fallback', async () => {
+      const collections = [mockCollection()];
+      const variable = mockVariable({
+        resolvedType: 'FLOAT',
+        valuesByMode: { mode1: 24 },
+      });
+
+      mockFigma.variables.getLocalVariableCollectionsAsync.mockResolvedValue(collections);
+      mockFigma.variables.getVariableByIdAsync.mockResolvedValue(variable);
+
+      const result = await applyCssVarSyntaxToVariables({ overwriteExisting: false });
+
+      expect(variable.setVariableCodeSyntax).toHaveBeenCalledWith('WEB', 'var(--wp--custom--color--primary, 24px)');
+      expect(result.updatedCount).toBe(1);
+    });
+
+    it('should use raw string values as fallback', async () => {
+      const collections = [mockCollection()];
+      const variable = mockVariable({
+        resolvedType: 'STRING',
+        valuesByMode: { mode1: 'bold' },
+      });
+
+      mockFigma.variables.getLocalVariableCollectionsAsync.mockResolvedValue(collections);
+      mockFigma.variables.getVariableByIdAsync.mockResolvedValue(variable);
+
+      const result = await applyCssVarSyntaxToVariables({ overwriteExisting: false });
+
+      expect(variable.setVariableCodeSyntax).toHaveBeenCalledWith('WEB', 'var(--wp--custom--color--primary, bold)');
+      expect(result.updatedCount).toBe(1);
+    });
+
+    it('should use raw boolean values as fallback', async () => {
+      const collections = [mockCollection()];
+      const variable = mockVariable({
+        resolvedType: 'BOOLEAN',
+        valuesByMode: { mode1: true },
+      });
+
+      mockFigma.variables.getLocalVariableCollectionsAsync.mockResolvedValue(collections);
+      mockFigma.variables.getVariableByIdAsync.mockResolvedValue(variable);
+
+      const result = await applyCssVarSyntaxToVariables({ overwriteExisting: false });
+
+      expect(variable.setVariableCodeSyntax).toHaveBeenCalledWith('WEB', 'var(--wp--custom--color--primary, true)');
+      expect(result.updatedCount).toBe(1);
+    });
+
+    it('should handle variable aliases gracefully', async () => {
+      const collections = [mockCollection()];
+      const variable = mockVariable({
+        resolvedType: 'COLOR',
+        valuesByMode: { mode1: { id: 'alias-var-id', type: 'VARIABLE_ALIAS' } },
+      });
+
+      mockFigma.variables.getLocalVariableCollectionsAsync.mockResolvedValue(collections);
+      mockFigma.variables.getVariableByIdAsync.mockResolvedValue(variable);
+
+      const result = await applyCssVarSyntaxToVariables({ overwriteExisting: false });
+
+      expect(variable.setVariableCodeSyntax).toHaveBeenCalledWith('WEB', 'var(--wp--custom--color--primary, inherit)');
+      expect(result.updatedCount).toBe(1);
+    });
+
+    it('should handle variables with no modes gracefully', async () => {
+      const collections = [mockCollection()];
+      const variable = mockVariable({
+        valuesByMode: {},
+      });
+
+      mockFigma.variables.getLocalVariableCollectionsAsync.mockResolvedValue(collections);
+      mockFigma.variables.getVariableByIdAsync.mockResolvedValue(variable);
+
+      const result = await applyCssVarSyntaxToVariables({ overwriteExisting: false });
+
+      expect(variable.setVariableCodeSyntax).toHaveBeenCalledWith('WEB', 'var(--wp--custom--color--primary, inherit)');
+      expect(result.updatedCount).toBe(1);
+    });
+
     it('should skip variables with existing CSS var syntax when overwrite is false', async () => {
       const collections = [mockCollection()];
       const variable = mockVariable({

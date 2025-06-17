@@ -26,6 +26,67 @@ export function generateCssVarSyntax(nameParts: string[], originalValue: string)
 }
 
 /**
+ * Extracts the raw value from a Figma variable for use as a fallback
+ */
+function getVariableRawValue(variable: Variable): string {
+	// Get the first available mode
+	const firstMode = Object.keys(variable.valuesByMode)[0];
+	if (!firstMode) {
+		return 'inherit';
+	}
+	
+	const value = variable.valuesByMode[firstMode];
+	
+	// Handle different variable types
+	switch (variable.resolvedType) {
+		case 'COLOR':
+			if (value && typeof value === 'object' && 'r' in value) {
+				// Convert RGB to hex
+				const r = Math.round(value.r * 255);
+				const g = Math.round(value.g * 255);
+				const b = Math.round(value.b * 255);
+				return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+			}
+			break;
+			
+		case 'FLOAT':
+			if (typeof value === 'number') {
+				return `${value}px`;
+			}
+			break;
+			
+		case 'STRING':
+			if (typeof value === 'string') {
+				return value;
+			}
+			break;
+			
+		case 'BOOLEAN':
+			if (typeof value === 'boolean') {
+				return value.toString();
+			}
+			break;
+			
+		default:
+			// Handle variable aliases and other types
+			if (value && typeof value === 'object' && 'id' in value) {
+				// This is a variable alias - we could resolve it, but for fallback purposes
+				// we'll use a generic value. In practice, the alias should resolve to the actual value.
+				return 'inherit';
+			}
+			
+			// For any other type, try to stringify the value
+			if (value !== null && value !== undefined) {
+				return String(value);
+			}
+			break;
+	}
+	
+	// Final fallback
+	return 'inherit';
+}
+
+/**
  * Applies CSS var syntax to all variables in the current Figma file
  */
 export async function applyCssVarSyntaxToVariables(options: { overwriteExisting: boolean }) {
@@ -68,37 +129,9 @@ export async function applyCssVarSyntaxToVariables(options: { overwriteExisting:
 				originalValue = currentWebSyntax || '';
 			}
 
-			// If originalValue is empty, try to get a better fallback
+			// If originalValue is empty, extract the actual raw value from the variable
 			if (!originalValue) {
-				// For colors, try to get a representative value
-				if (variable.resolvedType === 'COLOR') {
-					// Get the first available value
-					const firstMode = Object.keys(variable.valuesByMode)[0];
-					if (firstMode) {
-						const value = variable.valuesByMode[firstMode];
-						if (value && typeof value === 'object' && 'r' in value) {
-							// Convert RGB to hex as fallback
-							const r = Math.round(value.r * 255);
-							const g = Math.round(value.g * 255);
-							const b = Math.round(value.b * 255);
-							originalValue = `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
-						}
-					}
-				} else if (variable.resolvedType === 'FLOAT') {
-					// For numbers, use the first available value
-					const firstMode = Object.keys(variable.valuesByMode)[0];
-					if (firstMode) {
-						const value = variable.valuesByMode[firstMode];
-						if (typeof value === 'number') {
-							originalValue = `${value}px`;
-						}
-					}
-				}
-				
-				// Final fallback
-				if (!originalValue) {
-					originalValue = 'inherit';
-				}
+				originalValue = getVariableRawValue(variable);
 			}
 
 			// Generate the new CSS var syntax with the complete path
