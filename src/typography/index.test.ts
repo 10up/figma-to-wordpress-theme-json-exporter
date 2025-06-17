@@ -812,5 +812,209 @@ describe('Typography Functions', () => {
 
 			expect(result[0].letterSpacing).toBe('0.5'); // Should use raw value for other units
 		});
+
+		it('should use rem units for font sizes when rem conversion is enabled', async () => {
+			const mockTextStyles = [
+				{
+					name: 'Heading Large',
+					fontSize: 32
+				},
+				{
+					name: 'Body Text',
+					fontSize: 16
+				}
+			];
+
+			mockFigma.getLocalTextStylesAsync.mockResolvedValue(mockTextStyles);
+
+			const options = {
+				useRem: true,
+				remCollections: { font: true, primitives: false, spacing: false }
+			};
+
+			const result = await getTypographyPresets(options);
+
+			expect(result[0].fontSize).toBe('2rem'); // 32px = 2rem
+			expect(result[1].fontSize).toBe('1rem'); // 16px = 1rem
+		});
+
+		it('should use px units for font sizes when rem conversion is disabled', async () => {
+			const mockTextStyles = [
+				{
+					name: 'Heading Large',
+					fontSize: 32
+				},
+				{
+					name: 'Body Text',
+					fontSize: 16
+				}
+			];
+
+			mockFigma.getLocalTextStylesAsync.mockResolvedValue(mockTextStyles);
+
+			const options = {
+				useRem: false,
+				remCollections: { font: true, primitives: false, spacing: false }
+			};
+
+			const result = await getTypographyPresets(options);
+
+			expect(result[0].fontSize).toBe('32px');
+			expect(result[1].fontSize).toBe('16px');
+		});
+
+		it('should use px units for font sizes when font collection is not enabled for rem', async () => {
+			const mockTextStyles = [
+				{
+					name: 'Heading Large',
+					fontSize: 32
+				}
+			];
+
+			mockFigma.getLocalTextStylesAsync.mockResolvedValue(mockTextStyles);
+
+			const options = {
+				useRem: true,
+				remCollections: { font: false, primitives: true, spacing: true }
+			};
+
+			const result = await getTypographyPresets(options);
+
+			expect(result[0].fontSize).toBe('32px');
+		});
+
+		it('should use px units when no rem options provided', async () => {
+			const mockTextStyles = [
+				{
+					name: 'Heading Large',
+					fontSize: 32
+				}
+			];
+
+			mockFigma.getLocalTextStylesAsync.mockResolvedValue(mockTextStyles);
+
+			const result = await getTypographyPresets(); // No options provided
+
+			expect(result[0].fontSize).toBe('32px');
+		});
+
+		it('should prefer CSS variable over rem conversion when font size variable exists', async () => {
+			const collections = [{
+				id: 'collection1',
+				name: 'Typography',
+				modes: [{ modeId: 'mode1', name: 'Default' }],
+				variableIds: ['var1']
+			}];
+
+			mockFigma.variables.getLocalVariableCollectionsAsync.mockResolvedValue(collections);
+			mockFigma.variables.getVariablesByCollectionIdAsync.mockResolvedValue([{
+				id: 'var1',
+				name: 'font/size/large'
+			}]);
+			mockFigma.variables.getVariableByIdAsync.mockResolvedValue({
+				id: 'var1',
+				valuesByMode: {
+					mode1: 32
+				}
+			});
+
+			const mockTextStyles = [
+				{
+					name: 'Heading Large',
+					fontSize: 32
+				}
+			];
+
+			mockFigma.getLocalTextStylesAsync.mockResolvedValue(mockTextStyles);
+
+			const options = {
+				useRem: true,
+				remCollections: { font: true, primitives: false, spacing: false }
+			};
+
+			const result = await getTypographyPresets(options);
+
+			// Should use CSS variable instead of rem conversion
+			expect(result[0].fontSize).toBe('var(--wp--custom--font--size--large)');
+		});
+
+		it('should use rem conversion when font size variable does not exist', async () => {
+			// Mock no font size variables found
+			mockFigma.variables.getLocalVariableCollectionsAsync.mockResolvedValue([]);
+
+			const mockTextStyles = [
+				{
+					name: 'Heading Large',
+					fontSize: 24
+				}
+			];
+
+			mockFigma.getLocalTextStylesAsync.mockResolvedValue(mockTextStyles);
+
+			const options = {
+				useRem: true,
+				remCollections: { font: true, primitives: false, spacing: false }
+			};
+
+			const result = await getTypographyPresets(options);
+
+			expect(result[0].fontSize).toBe('1.5rem'); // 24px = 1.5rem
+		});
+
+		it('should handle bound variables and ignore rem conversion for font sizes', async () => {
+			mockFigma.variables.getVariableByIdAsync.mockResolvedValue({
+				name: 'typography/heading/large',
+				resolvedType: 'FLOAT'
+			});
+
+			const mockTextStyles = [
+				{
+					name: 'Heading Large',
+					fontSize: 32,
+					boundVariables: {
+						fontSize: { id: 'bound-var-id' }
+					}
+				}
+			];
+
+			mockFigma.getLocalTextStylesAsync.mockResolvedValue(mockTextStyles);
+
+			const options = {
+				useRem: true,
+				remCollections: { font: true, primitives: false, spacing: false }
+			};
+
+			const result = await getTypographyPresets(options);
+
+			// Should use bound variable instead of rem conversion
+			expect(result[0].fontSize).toBe('var(--wp--custom--font--size--typography--heading--large)');
+		});
+
+		it('should handle decimal font sizes with rem conversion', async () => {
+			mockFigma.variables.getLocalVariableCollectionsAsync.mockResolvedValue([]);
+
+			const mockTextStyles = [
+				{
+					name: 'Heading Medium',
+					fontSize: 18
+				},
+				{
+					name: 'Small Text',
+					fontSize: 14
+				}
+			];
+
+			mockFigma.getLocalTextStylesAsync.mockResolvedValue(mockTextStyles);
+
+			const options = {
+				useRem: true,
+				remCollections: { font: true, primitives: false, spacing: false }
+			};
+
+			const result = await getTypographyPresets(options);
+
+			expect(result[0].fontSize).toBe('1.125rem'); // 18px = 1.125rem
+			expect(result[1].fontSize).toBe('0.875rem'); // 14px = 0.875rem
+		});
 	});
 }); 

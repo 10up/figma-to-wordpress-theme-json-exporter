@@ -1,10 +1,10 @@
-import { VariableCollection, VariableCollectionMode } from '../types';
+import { VariableCollection, VariableCollectionMode, ExportOptions } from '../types';
 import { isVariableAlias, formatValueWithUnits } from '../utils/index';
 import { buildCssVarReference } from '../utils/css';
 import { rgbToHex } from '../utils/color';
 
 // New helper function to process a specific mode of a collection
-export async function processCollectionModeData(collection: VariableCollection, mode: VariableCollectionMode) {
+export async function processCollectionModeData(collection: VariableCollection, mode: VariableCollectionMode, options?: ExportOptions) {
 	const { variableIds } = collection;
 	const variablesData: Record<string, any> = {};
 
@@ -41,7 +41,7 @@ export async function processCollectionModeData(collection: VariableCollection, 
 			} else {
 				obj[leafName] = resolvedType === "COLOR" ?
 					rgbToHex(value) :
-					formatValueWithUnits(nameParts, value);
+					formatValueWithUnits(nameParts, value, options?.useRem, options?.remCollections);
 			}
 		}
 	}
@@ -50,7 +50,7 @@ export async function processCollectionModeData(collection: VariableCollection, 
 }
 
 // Update processCollectionData to use the new helper function
-export async function processCollectionData({ name, modes, variableIds }: VariableCollection) {
+export async function processCollectionData({ name, modes, variableIds }: VariableCollection, options?: ExportOptions) {
 	// Check if this collection has exactly two modes named "Desktop" and "Mobile"
 	const isFluidCollection = modes.length === 2 &&
 		modes.some(mode => mode.name.toLowerCase() === "desktop") &&
@@ -66,7 +66,8 @@ export async function processCollectionData({ name, modes, variableIds }: Variab
 			// Fallback to first mode if desktop/mobile not found
 			return await processCollectionModeData(
 				{ name, modes, variableIds } as VariableCollection,
-				modes[0]
+				modes[0],
+				options
 			);
 		}
 
@@ -139,16 +140,16 @@ export async function processCollectionData({ name, modes, variableIds }: Variab
 					} else {
 						obj[leafName] = resolvedType === "COLOR" ?
 							rgbToHex(desktopValue) :
-							formatValueWithUnits(nameParts, desktopValue);
+							formatValueWithUnits(nameParts, desktopValue, options?.useRem, options?.remCollections);
 					}
 				} else {
 					// Both are direct values
 					const maxValue = resolvedType === "COLOR" ?
 						rgbToHex(desktopValue) :
-						formatValueWithUnits(nameParts, desktopValue);
+						formatValueWithUnits(nameParts, desktopValue, options?.useRem, options?.remCollections);
 					const minValue = resolvedType === "COLOR" ?
 						rgbToHex(mobileValue) :
-						formatValueWithUnits(nameParts, mobileValue);
+						formatValueWithUnits(nameParts, mobileValue, options?.useRem, options?.remCollections);
 
 					// If min and max are the same, use the value directly
 					if (JSON.stringify(maxValue) === JSON.stringify(minValue)) {
@@ -169,7 +170,8 @@ export async function processCollectionData({ name, modes, variableIds }: Variab
 		// For regular collections, use the first mode
 		return await processCollectionModeData(
 			{ name, modes, variableIds } as VariableCollection,
-			modes[0]
+			modes[0],
+			options
 		);
 	}
 } 

@@ -7,6 +7,13 @@ export interface ExportOptions {
 	selectedColors?: string[]; // Array of color variable IDs to include in presets
 	applyCssVarSyntax?: boolean; // Apply CSS var syntax to Figma variables
 	overwriteExistingVars?: boolean; // Whether to overwrite existing CSS var syntax
+	useRem?: boolean; // Whether to use rem units instead of px
+	remCollections?: {
+		font?: boolean;
+		primitives?: boolean;
+		spacing?: boolean;
+		[key: string]: boolean | undefined;
+	}; // Which collections to apply rem conversion to
 }
 
 // TypeScript interface for Figma Variable Collection Mode

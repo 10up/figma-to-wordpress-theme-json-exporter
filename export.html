@@ -449,6 +449,21 @@
 	  flex-shrink: 0;
 	}
 
+	.rem-collections {
+	  background-color: var(--figma-color-bg-secondary);
+	  border-radius: 4px;
+	  padding: calc(var(--spacing) / 2);
+	  border-left: 3px solid var(--figma-color-border-selected);
+	}
+
+	.rem-collections .option-row {
+	  margin-bottom: calc(var(--spacing) / 4);
+	}
+
+	.rem-collections .option-row:last-child {
+	  margin-bottom: 0;
+	}
+
 	.customize-button {
 	  background-color: var(--figma-color-bg-secondary);
 	  color: var(--figma-color-text);
@@ -496,6 +511,25 @@
 	  <div class="option-row">
 		<input type="checkbox" id="generate-spacing-presets" />
 		<label for="generate-spacing-presets">Generate spacing presets from spacing variables</label>
+	  </div>
+
+	  <div class="option-row">
+		<input type="checkbox" id="use-rem" />
+		<label for="use-rem">Use rem units instead of px</label>
+	  </div>
+	  <div class="rem-collections" id="rem-collections" style="display: none; margin-left: 20px; margin-top: 8px;">
+		<div class="option-row">
+		  <input type="checkbox" id="rem-font" />
+		  <label for="rem-font">Apply to Font/Typography variables</label>
+		</div>
+		<div class="option-row">
+		  <input type="checkbox" id="rem-primitives" />
+		  <label for="rem-primitives">Apply to Primitives collection</label>
+		</div>
+		<div class="option-row">
+		  <input type="checkbox" id="rem-spacing" />
+		  <label for="rem-spacing">Apply to Spacing variables</label>
+		</div>
 	  </div>
 
 	  <div class="file-upload">
@@ -744,6 +778,14 @@
 	  const generateTypography = document.getElementById("generate-typography").checked;
 	  const generateColorPresets = document.getElementById("generate-color-presets").checked;
 	  const generateSpacingPresets = document.getElementById("generate-spacing-presets").checked;
+	  const useRem = document.getElementById("use-rem").checked;
+	  
+	  // Get rem collection options if rem is enabled
+	  const remCollections = useRem ? {
+		font: document.getElementById("rem-font").checked,
+		primitives: document.getElementById("rem-primitives").checked,
+		spacing: document.getElementById("rem-spacing").checked
+	  } : undefined;
 	  
 	  // Pass the options to the plugin
 	  parent.postMessage({ 
@@ -754,7 +796,9 @@
 			generateColorPresets,
 			generateSpacingPresets,
 			baseTheme,
-			selectedColors: generateColorPresets ? selectedColorIds : undefined
+			selectedColors: generateColorPresets ? selectedColorIds : undefined,
+			useRem,
+			remCollections
 		  }
 		} 
 	  }, "*");
@@ -826,6 +870,22 @@
 	  customizeButton.disabled = !colorPresetsCheckbox.checked;
 	  if (!colorPresetsCheckbox.checked) {
 		selectedColorIds = [];
+	  }
+	});
+
+	// Handle rem options visibility
+	const useRemCheckbox = document.getElementById("use-rem");
+	const remCollectionsContainer = document.getElementById("rem-collections");
+	
+	useRemCheckbox.addEventListener("change", () => {
+	  if (useRemCheckbox.checked) {
+		remCollectionsContainer.style.display = "block";
+		// Enable font and primitives by default, but not spacing
+		document.getElementById("rem-font").checked = true;
+		document.getElementById("rem-primitives").checked = true;
+		document.getElementById("rem-spacing").checked = false;
+	  } else {
+		remCollectionsContainer.style.display = "none";
 	  }
 	});
 

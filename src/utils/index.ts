@@ -66,11 +66,54 @@ export function shouldAddPxUnit(nameParts: string[], value: any): boolean {
 }
 
 // Helper function to format value with px units when appropriate
-export function formatValueWithUnits(nameParts: string[], value: any): any {
+export function formatValueWithUnits(nameParts: string[], value: any, useRem?: boolean, remCollections?: any): any {
 	if (shouldAddPxUnit(nameParts, value)) {
+		if (useRem && shouldUseRemForCollection(nameParts, remCollections)) {
+			return convertPxToRem(value);
+		}
 		return `${value}px`;
 	}
 	return value;
+}
+
+// Helper function to determine if rem should be used for this collection
+export function shouldUseRemForCollection(nameParts: string[], remCollections?: any): boolean {
+	if (!remCollections) return false;
+	
+	// Check if any part of the path matches enabled rem collections
+	const pathStr = nameParts.join('/').toLowerCase();
+	
+	// Check for specific collection patterns
+	if ((pathStr.includes('font') || pathStr.includes('typography')) && remCollections.font) {
+		return true;
+	}
+	
+	if (pathStr.includes('primitives') && remCollections.primitives) {
+		return true;
+	}
+	
+	if (pathStr.includes('spacing') && remCollections.spacing) {
+		return true;
+	}
+	
+	// Check for any custom collections by name
+	for (const [collectionName, enabled] of Object.entries(remCollections)) {
+		if (enabled && pathStr.includes(collectionName.toLowerCase())) {
+			return true;
+		}
+	}
+	
+	return false;
+}
+
+// Helper function to convert px value to rem (assuming 16px base)
+export function convertPxToRem(pxValue: number): string {
+	const baseFontSize = 16; // Standard browser default
+	const remValue = pxValue / baseFontSize;
+	
+	// Round to max 3 decimal places and remove trailing zeros
+	const rounded = Math.round(remValue * 1000) / 1000;
+	return `${rounded}rem`;
 }
 
 // Helper function to round numbers nicely with max 3 decimal places
