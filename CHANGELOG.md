@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.3.0
+
+### Minor Changes
+
+- 69fc762: Feature: Add a New Apply Code Syntax Feature to the Plugin
+- 309f801: Feature: Add the ability to convert px values to rems
+
 ## 1.2.0
 
 ### Minor Changes
