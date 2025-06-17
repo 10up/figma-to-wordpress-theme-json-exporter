@@ -545,6 +545,246 @@ describe('Export Functions', () => {
 			expect(customSettings.spacing).toBeDefined(); // From spacing collection
 		});
 
+		it('should pass rem conversion options to collection processing and generate rem values', async () => {
+			const collections = [
+				{
+					name: 'Typography',
+					modes: [{ modeId: 'typo', name: 'Default' }],
+					variableIds: ['font-var']
+				},
+				{
+					name: 'Spacing',
+					modes: [{ modeId: 'space', name: 'Default' }],
+					variableIds: ['space-var']
+				}
+			];
+
+			mockFigma.variables.getLocalVariableCollectionsAsync.mockResolvedValue(collections);
+			
+			mockFigma.variables.getVariableByIdAsync
+				.mockResolvedValueOnce({
+					name: 'font/size/large',
+					resolvedType: 'FLOAT',
+					valuesByMode: { typo: 32 }
+				})
+				.mockResolvedValueOnce({
+					name: 'spacing/large',
+					resolvedType: 'FLOAT',
+					valuesByMode: { space: 24 }
+				});
+
+			const options = {
+				useRem: true,
+				remCollections: { font: true, primitives: false, spacing: false }
+			};
+
+			await exportToJSON(options);
+
+			const call = mockFigma.ui.postMessage.mock.calls[0][0];
+			const customSettings = call.files[0].body.settings.custom;
+			
+			// Font variable should use rem
+			expect(customSettings.typography.font.size.large).toBe('2rem'); // 32px = 2rem
+			// Spacing variable should use px (not enabled for rem)
+			expect(customSettings.spacing.spacing.large).toBe('24px');
+		});
+
+		it('should pass rem conversion options to typography presets', async () => {
+			mockFigma.variables.getLocalVariableCollectionsAsync.mockResolvedValue([]);
+			mockFigma.getLocalTextStylesAsync.mockResolvedValue([
+				{
+					name: 'Heading 1',
+					fontFamily: 'Arial',
+					fontSize: 32,
+					fontWeight: 700
+				}
+			]);
+
+			const options = {
+				generateTypography: true,
+				useRem: true,
+				remCollections: { font: true, primitives: false, spacing: false }
+			};
+
+			await exportToJSON(options);
+
+			const call = mockFigma.ui.postMessage.mock.calls[0][0];
+			expect(call.files[0].body.settings.custom.typography).toBeDefined();
+			expect(call.files[0].body.settings.custom.typography.presets).toHaveLength(1);
+			expect(call.files[0].body.settings.custom.typography.presets[0].fontSize).toBe('2rem'); // 32px = 2rem
+		});
+
+		it('should not use rem when rem conversion is disabled in options', async () => {
+			const collections = [
+				{
+					name: 'Typography',
+					modes: [{ modeId: 'typo', name: 'Default' }],
+					variableIds: ['font-var']
+				}
+			];
+
+			mockFigma.variables.getLocalVariableCollectionsAsync.mockResolvedValue(collections);
+			
+			mockFigma.variables.getVariableByIdAsync
+				.mockResolvedValueOnce({
+					name: 'font/size/large',
+					resolvedType: 'FLOAT',
+					valuesByMode: { typo: 32 }
+				});
+
+			const options = {
+				useRem: false,
+				remCollections: { font: true, primitives: true, spacing: true }
+			};
+
+			await exportToJSON(options);
+
+			const call = mockFigma.ui.postMessage.mock.calls[0][0];
+			const customSettings = call.files[0].body.settings.custom;
+			
+			// Font variable should use px when rem is disabled
+			expect(customSettings.typography.font.size.large).toBe('32px');
+		});
+
+		it('should handle rem conversion with primitives collection', async () => {
+			const collections = [
+				{
+					name: 'Primitives',
+					modes: [{ modeId: 'prim', name: 'Default' }],
+					variableIds: ['prim-var']
+				}
+			];
+
+			mockFigma.variables.getLocalVariableCollectionsAsync.mockResolvedValue(collections);
+			
+			mockFigma.variables.getVariableByIdAsync
+				.mockResolvedValueOnce({
+					name: 'primitives/size/unit',
+					resolvedType: 'FLOAT',
+					valuesByMode: { prim: 8 }
+				});
+
+			const options = {
+				useRem: true,
+				remCollections: { font: false, primitives: true, spacing: false }
+			};
+
+			await exportToJSON(options);
+
+			const call = mockFigma.ui.postMessage.mock.calls[0][0];
+			const customSettings = call.files[0].body.settings.custom;
+			
+			// Primitives variable should use rem
+			expect(customSettings.primitives.size.unit).toBe('0.5rem'); // 8px = 0.5rem
+		});
+
+		it('should handle rem conversion with spacing collection', async () => {
+			const collections = [
+				{
+					name: 'Spacing',
+					modes: [{ modeId: 'space', name: 'Default' }],
+					variableIds: ['space-var']
+				}
+			];
+
+			mockFigma.variables.getLocalVariableCollectionsAsync.mockResolvedValue(collections);
+			
+			mockFigma.variables.getVariableByIdAsync
+				.mockResolvedValueOnce({
+					name: 'spacing/large',
+					resolvedType: 'FLOAT',
+					valuesByMode: { space: 32 }
+				});
+
+			const options = {
+				useRem: true,
+				remCollections: { font: false, primitives: false, spacing: true }
+			};
+
+			await exportToJSON(options);
+
+			const call = mockFigma.ui.postMessage.mock.calls[0][0];
+			const customSettings = call.files[0].body.settings.custom;
+			
+			// Spacing variable should use rem
+			expect(customSettings.spacing.spacing.large).toBe('2rem'); // 32px = 2rem
+		});
+
+		it('should handle rem conversion with fluid collections', async () => {
+			const collections = [
+				{
+					name: 'Fluid Spacing',
+					modes: [
+						{ modeId: 'desktop', name: 'Desktop' },
+						{ modeId: 'mobile', name: 'Mobile' }
+					],
+					variableIds: ['fluid-var']
+				}
+			];
+
+			mockFigma.variables.getLocalVariableCollectionsAsync.mockResolvedValue(collections);
+			
+			mockFigma.variables.getVariableByIdAsync
+				.mockResolvedValue({
+					name: 'spacing/responsive',
+					resolvedType: 'FLOAT',
+					valuesByMode: { 
+						desktop: 32,
+						mobile: 16
+					}
+				});
+
+			const options = {
+				useRem: true,
+				remCollections: { font: false, primitives: false, spacing: true }
+			};
+
+			await exportToJSON(options);
+
+			const call = mockFigma.ui.postMessage.mock.calls[0][0];
+			const customSettings = call.files[0].body.settings.custom;
+			
+			// Fluid spacing variable should use rem for both min and max
+			// The collection name "Fluid Spacing" becomes "fluid spacing" when lowercased
+			expect(customSettings['fluid spacing'].spacing.responsive).toEqual({
+				fluid: 'true',
+				min: '1rem',  // 16px = 1rem
+				max: '2rem'   // 32px = 2rem
+			});
+		});
+
+		it('should not affect color variables with rem conversion enabled', async () => {
+			const collections = [
+				{
+					name: 'Color',
+					modes: [{ modeId: 'color', name: 'Default' }],
+					variableIds: ['color-var']
+				}
+			];
+
+			mockFigma.variables.getLocalVariableCollectionsAsync.mockResolvedValue(collections);
+			
+			mockFigma.variables.getVariableByIdAsync
+				.mockResolvedValueOnce({
+					name: 'color/primary',
+					resolvedType: 'COLOR',
+					valuesByMode: { color: { r: 1, g: 0, b: 0 } }
+				});
+
+			const options = {
+				useRem: true,
+				remCollections: { font: true, primitives: true, spacing: true }
+			};
+
+			await exportToJSON(options);
+
+			const call = mockFigma.ui.postMessage.mock.calls[0][0];
+			const customSettings = call.files[0].body.settings.custom;
+			
+			// Color variable should remain unchanged (hex value)
+			expect(customSettings.color.color.primary).toBe('#ff0000');
+		});
+
 		it('should generate spacing presets when requested', async () => {
 			const collections = [
 				{
