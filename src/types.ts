@@ -5,6 +5,8 @@ export interface ExportOptions {
 	generateSpacingPresets?: boolean;
 	baseTheme?: any;
 	selectedColors?: string[]; // Array of color variable IDs to include in presets
+	applyCssVarSyntax?: boolean; // Apply CSS var syntax to Figma variables
+	overwriteExistingVars?: boolean; // Whether to overwrite existing CSS var syntax
 	useRem?: boolean; // Whether to use rem units instead of px
 	remCollections?: {
 		font?: boolean;

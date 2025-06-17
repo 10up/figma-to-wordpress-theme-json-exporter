@@ -10,6 +10,7 @@ const mockFigma = {
 	getLocalTextStylesAsync: vi.fn(),
 	ui: {
 		postMessage: vi.fn(),
+		onmessage: vi.fn(),
 	},
 };
 
