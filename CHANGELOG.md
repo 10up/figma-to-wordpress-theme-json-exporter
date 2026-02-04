@@ -1,27 +1,27 @@
 # Changelog
 
-## 1.3.0
+All notable changes to this project will be documented in this file, per [the Keep a Changelog standard](http://keepachangelog.com/), and will adhere to [Semantic Versioning](http://semver.org/).
+
+## [Unreleased] - TBD
+
+## [1.3.0] - 2025-06-17
 
 ### Minor Changes
 
 - 69fc762: Feature: Add a New Apply Code Syntax Feature to the Plugin
 - 309f801: Feature: Add the ability to convert px values to rems
 
-## 1.2.0
+## [1.2.0] - 2025-05-06
 
 ### Minor Changes
 
 - 5cca2ca: Public Release
 
-## 1.1.3
+## [1.1.3] - 2025-05-28
 
 ### Patch Changes
 
 - 0c0de2a: Add changesets
-
-All notable changes to this project will be documented in this file, per [the Keep a Changelog standard](http://keepachangelog.com/), and will adhere to [Semantic Versioning](http://semver.org/).
-
-## [Unreleased] - TBD
 
 ## [1.1.2] - 2025-02-28
 
@@ -53,7 +53,8 @@ All notable changes to this project will be documented in this file, per [the Ke
 - Initial private release.
 
 [Unreleased]: https://github.com/10up/figma-to-wordpress-theme-json-exporter/compare/main...develop
-[1.2.0]: https://github.com/10up/figma-to-wordpress-theme-json-exporter/compare/0c0de2a...5cca2ca
+[1.3.0]: https://github.com/10up/figma-to-wordpress-theme-json-exporter/compare/v.1.2...v.1.3
+[1.2.0]: https://github.com/10up/figma-to-wordpress-theme-json-exporter/compare/0c0de2a...v.1.2
 [1.1.3]: https://github.com/10up/figma-to-wordpress-theme-json-exporter/compare/v1.1.2...0c0de2a
 [1.1.2]: https://github.com/10up/figma-to-wordpress-theme-json-exporter/compare/v1.1.1...v1.1.2
 [1.1.1]: https://github.com/10up/figma-to-wordpress-theme-json-exporter/compare/v1.1.0...v1.1.1
